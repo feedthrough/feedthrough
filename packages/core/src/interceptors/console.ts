@@ -34,5 +34,6 @@ export class ConsoleInterceptor {
 function serialize(v: unknown): unknown {
   if (v === null || v === undefined) return String(v);
   if (typeof v !== "object") return v;
+  if (v instanceof Error) return { name: v.name, message: v.message, stack: v.stack };
   try { return JSON.parse(JSON.stringify(v)); } catch { return String(v); }
 }

@@ -63,7 +63,15 @@ function clickEl(selector: string) {
 function fillEl(selector: string, value: string) {
   const el = getEl(selector) as HTMLInputElement;
   el.focus();
-  el.value = value;
+  // Use the native setter so React's synthetic event system sees the change
+  // (React tracks the last value it set; a plain `el.value =` assignment may be
+  // treated as "no change" and onChange won't fire for controlled inputs).
+  const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  if (nativeSetter) {
+    nativeSetter.call(el, value);
+  } else {
+    el.value = value;
+  }
   el.dispatchEvent(new Event("input", { bubbles: true }));
   el.dispatchEvent(new Event("change", { bubbles: true }));
   return { tag: el.tagName.toLowerCase(), value };
