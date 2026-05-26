@@ -1,6 +1,7 @@
 {
   "name": "@feedthrough/vite",
   "version": "0.0.1",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

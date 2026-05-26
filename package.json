@@ -1,6 +1,7 @@
 {
   "name": "feedthrough",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
