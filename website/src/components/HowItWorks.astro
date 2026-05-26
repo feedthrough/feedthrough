@@ -1,0 +1,77 @@
+---
+---
+
+<section id="how-it-works">
+  <div class="container">
+    <p class="section-label">Architecture</p>
+    <h2>How it works</h2>
+    <p class="section-sub">Three components, one WebSocket, zero changes to your production build.</p>
+    <div class="arch fade">
+      <div class="flow">
+        <div class="box">
+          <div class="box-label">In your browser</div>
+          <div class="box-name">@feedthrough/core</div>
+          <ul class="box-items">
+            <li>console intercept</li>
+            <li>fetch / XHR intercept</li>
+            <li>DOM inspector</li>
+            <li>command handler</li>
+          </ul>
+        </div>
+        <div class="arrow">
+          <span>⟷</span>
+          <span class="arrow-label">WebSocket<br />:8765</span>
+        </div>
+        <div class="box">
+          <div class="box-label">Local server</div>
+          <div class="box-name">@feedthrough/mcp</div>
+          <ul class="box-items">
+            <li>9 MCP tools</li>
+            <li>request routing</li>
+            <li>timeout handling</li>
+            <li>stdio transport</li>
+          </ul>
+        </div>
+        <div class="arrow">
+          <span>⟷</span>
+          <span class="arrow-label">MCP / stdio</span>
+        </div>
+        <div class="box">
+          <div class="box-label">Your AI client</div>
+          <div class="box-name">Claude Code</div>
+          <ul class="box-items">
+            <li>inspect elements</li>
+            <li>read logs</li>
+            <li>click &amp; fill</li>
+            <li>debug freely</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .arch {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 32px; overflow-x: auto;
+  }
+  .flow {
+    display: grid; grid-template-columns: 1fr 40px 1fr 40px 1fr;
+    align-items: center; min-width: 560px;
+  }
+  .box {
+    background: var(--bg-code); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; text-align: center;
+  }
+  .box-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; }
+  .box-name  { font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent); font-weight: 500; margin-bottom: 12px; }
+  .box-items { list-style: none; font-size: 0.75rem; color: var(--text-muted); line-height: 1.7; }
+  .box-items li::before { content: '✓ '; color: var(--green); font-size: 0.7rem; }
+
+  .arrow {
+    text-align: center; color: var(--text-dim); font-size: 1.1rem;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .arrow-label { font-size: 0.65rem; color: var(--text-dim); font-family: var(--font-mono); }
+</style>

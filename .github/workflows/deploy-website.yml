@@ -1,6 +1,6 @@
 name: Deploy website to GitHub Pages
 
-# Manual trigger only — flip to `push: branches: [main]` when the repo goes public.
+# Manual trigger only — change to `push: branches: [main]` when the repo goes public.
 on:
   workflow_dispatch:
 
@@ -14,16 +14,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install -g pnpm
+      - run: pnpm install
+      - run: pnpm --filter feedthrough-website build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/dist
+
   deploy:
+    needs: build
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: website
       - id: deployment
         uses: actions/deploy-pages@v4

@@ -1,6 +1,8 @@
 packages:
   - "packages/*"
   - "examples/*"
+  - "website"
 allowBuilds:
   cypress: false
   esbuild: true
+  sharp: true

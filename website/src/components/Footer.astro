@@ -1,0 +1,27 @@
+---
+const GITHUB = "https://github.com/HEnquist/feedthrough";
+---
+
+<footer>
+  <div class="inner">
+    <div class="left">
+      MIT License ·
+      <a href={GITHUB} target="_blank" rel="noopener">GitHub</a> ·
+      <a href={`${GITHUB}/tree/main/packages`} target="_blank" rel="noopener">Packages</a>
+    </div>
+    <div class="right">feedthrough.dev</div>
+  </div>
+</footer>
+
+<style>
+  footer { border-top: 1px solid var(--border); padding: 40px 0; }
+  .inner {
+    max-width: 960px; margin: 0 auto; padding: 0 24px;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 16px;
+  }
+  .left { font-size: 0.8125rem; color: var(--text-muted); }
+  .left a { color: var(--text-muted); }
+  .left a:hover { color: var(--accent); }
+  .right { font-size: 0.8125rem; color: var(--text-dim); font-family: var(--font-mono); }
+</style>

@@ -1,0 +1,87 @@
+---
+---
+
+<section id="quick-start">
+  <div class="container">
+    <p class="section-label">Quick start</p>
+    <h2>Up in four steps</h2>
+    <p class="section-sub">No config files, no separate browser to launch.</p>
+    <div class="steps fade">
+
+      <div class="step">
+        <div class="num">1</div>
+        <div class="body">
+          <h3>Add to your Claude Code config</h3>
+          <pre><span class="cm">// .claude/settings.json</span>
+{'{'}
+  <span class="str">"mcpServers"</span>: {'{'}
+    <span class="str">"feedthrough"</span>: {'{'}
+      <span class="str">"command"</span>: <span class="str">"npx"</span>,
+      <span class="str">"args"</span>: [<span class="str">"@feedthrough/mcp"</span>]
+    {'}'}
+  {'}'}
+{'}'}</pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">2</div>
+        <div class="body">
+          <h3>Inject the bridge into your app</h3>
+          <p>Dev only — zero cost in production.</p>
+          <pre><span class="cm">// main.ts</span>
+<span class="kw">if</span> (import.meta.env.DEV) {'{'}
+  <span class="fn">import</span>(<span class="str">"@feedthrough/core"</span>).<span class="fn">then</span>(({'{'} init {'}'}) => <span class="fn">init</span>());
+{'}'}</pre>
+          <p class="or">Or with Cypress:</p>
+          <pre><span class="cm">// cypress/support/e2e.ts</span>
+<span class="kw">import</span> {'{'} setupFeedthrough {'}'} <span class="kw">from</span> <span class="str">"@feedthrough/cypress"</span>;
+<span class="fn">setupFeedthrough</span>();</pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">3</div>
+        <div class="body">
+          <h3>Open your app in the browser</h3>
+          <p>Once the bridge connects you'll see:</p>
+          <pre><span class="connected">[feedthrough] browser connected</span></pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">4</div>
+        <div class="body">
+          <h3>Ask Claude what's wrong</h3>
+          <pre><span class="cm">&gt; Why is the counter showing the wrong number?</span>
+
+<span class="acc">Claude:</span> I'll check the console logs and inspect the element.
+
+  get_console_logs()         <span class="cm">→ total: 1, 2, 3</span>
+  inspect_element("#count")  <span class="cm">→ textContent: "2, 4, 6"</span>
+
+  State increments by 2 but logs show +1.
+  Bug on line 47: <span class="str">setViews(views + 2)</span></pre>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<style>
+  .steps { display: flex; flex-direction: column; gap: 32px; }
+  .step  { display: grid; grid-template-columns: 32px 1fr; gap: 20px; }
+
+  .num {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    background: var(--accent-soft); border: 1px solid rgba(34,211,238,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); font-weight: 600;
+  }
+  .body h3 { font-size: 0.9375rem; font-weight: 600; margin-bottom: 8px; }
+  .body p  { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 12px; }
+  .or { margin-top: 12px; }
+  .connected { color: var(--green); }
+  .acc { color: var(--accent); }
+</style>

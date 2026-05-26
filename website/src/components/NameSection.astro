@@ -1,0 +1,66 @@
+---
+---
+
+<section>
+  <div class="container">
+    <div class="grid fade">
+      <div>
+        <p class="section-label">The name</p>
+        <h2>What's a feedthrough?</h2>
+        <p class="body">
+          In vacuum systems, a <strong>feedthrough</strong> is a component that passes signals
+          in and out of a sealed chamber without breaking the vacuum. You can't reach inside
+          directly — but the feedthrough lets you observe and control what's happening in there
+          anyway.
+        </p>
+        <p class="body">
+          The parallel is exact. Feedthrough extracts runtime debug data from inside a running
+          web app without disturbing it, and sends control signals back in — clicks, keystrokes,
+          DOM queries — without breaking the execution environment.
+        </p>
+      </div>
+      <div class="diagram">
+        <div>╔══════════════════════════╗</div>
+        <div>║  <span class="hi">Vacuum Chamber</span>          ║</div>
+        <div>║                          ║</div>
+        <div>║  <span class="acc">experiment running</span>      ║</div>
+        <div>║  <span class="acc">signals generated</span>       ║</div>
+        <div>║           │              ║</div>
+        <div>╚═══════════╪══════════════╝</div>
+        <div>            │ <span class="grn">feedthrough</span></div>
+        <div>            ▼</div>
+        <div>  <span class="hi">instruments outside</span></div>
+        <br/>
+        <div>╔══════════════════════════╗</div>
+        <div>║  <span class="hi">Your Web App</span>             ║</div>
+        <div>║                          ║</div>
+        <div>║  <span class="acc">React state changing</span>    ║</div>
+        <div>║  <span class="acc">fetches firing</span>          ║</div>
+        <div>║           │              ║</div>
+        <div>╚═══════════╪══════════════╝</div>
+        <div>            │ <span class="grn">@feedthrough/core</span></div>
+        <div>            ▼</div>
+        <div>  <span class="hi">Claude Code</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center;
+  }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+
+  .body { color: var(--text-muted); font-size: 0.9375rem; line-height: 1.7; margin-bottom: 16px; }
+  .body strong { color: var(--text); }
+
+  .diagram {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 28px 24px; font-family: var(--font-mono); font-size: 0.75rem;
+    color: var(--text-muted); line-height: 1.8;
+  }
+  .hi  { color: var(--text); }
+  .acc { color: var(--accent); }
+  .grn { color: var(--green); }
+</style>

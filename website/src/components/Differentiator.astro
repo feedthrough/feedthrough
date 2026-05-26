@@ -1,0 +1,64 @@
+---
+---
+
+<section>
+  <div class="container">
+    <p class="section-label">The difference</p>
+    <h2>Embedded, not external</h2>
+    <p class="section-sub">
+      Every other browser MCP tool controls the browser from the outside via Puppeteer or CDP.
+      That means Chrome only, a separate controlled browser, and no access to your app's internals.
+    </p>
+    <div class="grid fade">
+      <div class="card theirs">
+        <div class="card-label">✗ &nbsp;External tools (Puppeteer / CDP)</div>
+        <h3>Observer from the outside</h3>
+        <p>Launch a separate browser, drive it remotely, hope the public-facing DOM tells the whole story.</p>
+        <ul>
+          <li>Chrome only</li>
+          <li>No access to framework internals</li>
+          <li>Separate browser process required</li>
+          <li>Doesn't work inside Cypress</li>
+        </ul>
+      </div>
+      <div class="card ours">
+        <div class="card-label">✓ &nbsp;Feedthrough</div>
+        <h3>Agent from the inside</h3>
+        <p>Runs in the same JavaScript context as your app, with full access to everything the page knows.</p>
+        <ul>
+          <li>Any browser</li>
+          <li>React trees, Redux store, custom globals</li>
+          <li>Your existing dev server — no extra process</li>
+          <li>Works inside Cypress test runs</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 28px;
+  }
+  .card.theirs { opacity: 0.6; }
+
+  .card-label {
+    font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 12px;
+  }
+  .card.theirs .card-label { color: var(--text-muted); }
+  .card.ours   .card-label { color: var(--accent); }
+
+  .card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 8px; }
+  .card p  { font-size: 0.875rem; color: var(--text-muted); line-height: 1.6; }
+
+  .card ul { list-style: none; margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
+  .card ul li { font-size: 0.8125rem; color: var(--text-muted); display: flex; align-items: flex-start; gap: 8px; }
+  .card ul li::before { flex-shrink: 0; margin-top: 1px; }
+  .card.ours   ul li::before { content: '✓'; color: var(--green); }
+  .card.theirs ul li::before { content: '✗'; color: var(--red); }
+</style>
