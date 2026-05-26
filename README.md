@@ -3,8 +3,8 @@
 **An MCP server that lives inside your web app and knows its internals.**
 
 Feedthrough injects a lightweight debug bridge into any running web page, then exposes everything
-— DOM state, console logs, network requests, and user interactions — as MCP tools. Claude Code
-(or any MCP client) can inspect and drive the page conversationally, in real time.
+— DOM state, console logs, network requests, and user interactions — as MCP tools. Any
+MCP-compatible AI agent can inspect and drive the page conversationally, in real time.
 
 ```
 Browser (any)
@@ -13,7 +13,7 @@ Browser (any)
       ├── fetch / XHR interceptor
       └── DOM inspector
       ↕  WebSocket
-@feedthrough/mcp               ← MCP server, talks to Claude Code via stdio
+@feedthrough/mcp               ← MCP server, exposes tools over stdio
  └── Tools: click, fill, inspect_element, query_dom,
             get_console_logs, get_network_requests, …
       ↕  MCP protocol
@@ -52,7 +52,7 @@ via Puppeteer or CDP and only works in Chrome. Feedthrough is an **embedded agen
 | Package | Description |
 |---|---|
 | [`@feedthrough/core`](packages/core) | In-browser bridge — intercepts console, fetch, XHR; handles commands |
-| [`@feedthrough/mcp`](packages/mcp) | MCP server — bridges Claude Code to the browser via WebSocket |
+| [`@feedthrough/mcp`](packages/mcp) | MCP server — bridges any MCP client to the browser via WebSocket |
 | [`@feedthrough/cypress`](packages/cypress) | Cypress adapter — auto-injects the bridge before each test page load |
 | [`@feedthrough/vite`](packages/vite) | Vite plugin — auto-injects in dev mode *(coming soon)* |
 | [`@feedthrough/webpack`](packages/webpack) | Webpack plugin *(coming soon)* |
@@ -70,7 +70,7 @@ npx @feedthrough/mcp
 The server listens for a browser connection on `ws://localhost:8765` and exposes MCP tools on
 stdio. Override the port with `FEEDTHROUGH_PORT=9000`.
 
-### 2. Add it to your Claude Code config
+### 2. Add it to your MCP client config
 
 ```json
 {
@@ -105,7 +105,7 @@ setupFeedthrough();
 ### 4. Open your page and start asking Claude
 
 Once the bridge connects you'll see `[feedthrough] browser connected` in the MCP server output.
-Then in Claude Code:
+Then ask your AI agent:
 
 ```
 > What's on the page right now?
@@ -144,7 +144,7 @@ cd examples/react-app && pnpm dev    # http://localhost:5173
 cd packages/mcp && node dist/index.js
 ```
 
-Connect Claude Code and ask it to find what's wrong. The three bugs are all invisible from the
+Connect an AI agent and ask it to find what's wrong. The three bugs are all invisible from the
 UI but findable in under a minute via `get_console_logs`, `get_network_requests`, and `query_dom`.
 
 ---

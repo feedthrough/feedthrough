@@ -15,7 +15,7 @@ node packages/mcp/dist/index.js
 
 Set `FEEDTHROUGH_PORT` to override the default WebSocket port (8765).
 
-## Claude Code config
+## MCP client config
 
 Add to `.claude/settings.json` or `~/.claude.json`:
 
@@ -47,7 +47,7 @@ Add to `.claude/settings.json` or `~/.claude.json`:
 ## Architecture
 
 ```
-Claude Code  ──stdio──  @feedthrough/mcp  ──ws://localhost:8765──  @feedthrough/core (browser)
+AI agent  ──stdio──  @feedthrough/mcp  ──ws://localhost:8765──  @feedthrough/core (browser)
 ```
 
 The server accepts one browser connection at a time. If a second browser connects, it replaces

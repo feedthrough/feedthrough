@@ -51,4 +51,4 @@ node node_modules/@feedthrough/mcp/dist/index.js
 npx cypress run
 ```
 
-Claude Code can then interact with the page while Cypress tests are running.
+An AI agent can then interact with the page while Cypress tests are running.

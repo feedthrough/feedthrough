@@ -13,7 +13,7 @@ pnpm dev
 cd ../../packages/mcp && node dist/index.js
 ```
 
-Then connect Claude Code to the MCP server and ask it to investigate.
+Then connect an AI agent to the MCP server and ask it to investigate.
 
 ## The bugs
 
