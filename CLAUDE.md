@@ -119,7 +119,7 @@ Contains three deliberate bugs for testing the MCP diagnostic workflow:
 - ✅ Session 3 — @feedthrough/mcp
 - ✅ Session 4 — @feedthrough/cypress adapter
 - ✅ Session 5 — React example app with deliberate bugs
-- ⬜ Session 6 — validate console/network interception end-to-end
+- ✅ Session 6 — validate console/network interception end-to-end
 - ⬜ Session 7 — @feedthrough/vite adapter
 
 ## Strategy notes
