@@ -1,3 +1,8 @@
-// @feedthrough/mcp — MCP server
-// Implementation: Session 3
-export const VERSION = "0.0.1";
+import { startServer } from "./server.js";
+
+const port = parseInt(process.env["FEEDTHROUGH_PORT"] ?? "8765", 10);
+
+startServer(port).catch((err) => {
+  process.stderr.write(`[feedthrough] failed to start: ${err}\n`);
+  process.exit(1);
+});
