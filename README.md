@@ -29,7 +29,8 @@ without breaking the vacuum. You can't reach inside directly — but the feedthr
 observe and control what's happening in there anyway.
 
 The parallel is exact: Feedthrough extracts runtime debug data from inside a running web app
-without disturbing it.
+without disturbing it, and sends control signals back in — clicks, keystrokes, DOM queries —
+without breaking the execution environment.
 
 ---
 
