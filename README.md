@@ -54,7 +54,7 @@ via Puppeteer or CDP and only works in Chrome. Feedthrough is an **embedded agen
 | [`@feedthrough/core`](packages/core) | In-browser bridge — intercepts console, fetch, XHR; handles commands |
 | [`@feedthrough/mcp`](packages/mcp) | MCP server — bridges any MCP client to the browser via WebSocket |
 | [`@feedthrough/cypress`](packages/cypress) | Cypress adapter — auto-injects the bridge before each test page load |
-| [`@feedthrough/vite`](packages/vite) | Vite plugin — auto-injects in dev mode *(coming soon)* |
+| [`@feedthrough/vite`](packages/vite) | Vite plugin — auto-injects the bridge in dev mode |
 | [`@feedthrough/webpack`](packages/webpack) | Webpack plugin *(coming soon)* |
 
 ---
@@ -85,7 +85,15 @@ stdio. Override the port with `FEEDTHROUGH_PORT=9000`.
 
 ### 3. Inject the bridge into your page
 
-**Vite / any bundler — dev only:**
+**Vite plugin (recommended):**
+
+```ts
+// vite.config.ts
+import { feedthrough } from "@feedthrough/vite";
+export default defineConfig({ plugins: [feedthrough()] });
+```
+
+**Or manually (any bundler, dev only):**
 
 ```ts
 // main.ts

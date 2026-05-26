@@ -11,8 +11,8 @@
       <div class="step">
         <div class="num">1</div>
         <div class="body">
-          <h3>Add to your Claude Code config</h3>
-          <pre><span class="cm">// .claude/settings.json</span>
+          <h3>Add to your MCP client config</h3>
+          <pre><span class="cm">// .claude/settings.json (Claude Code example)</span>
 {'{'}
   <span class="str">"mcpServers"</span>: {'{'}
     <span class="str">"feedthrough"</span>: {'{'}
@@ -29,10 +29,9 @@
         <div class="body">
           <h3>Inject the bridge into your app</h3>
           <p>Dev only — zero cost in production.</p>
-          <pre><span class="cm">// main.ts</span>
-<span class="kw">if</span> (import.meta.env.DEV) {'{'}
-  <span class="fn">import</span>(<span class="str">"@feedthrough/core"</span>).<span class="fn">then</span>(({'{'} init {'}'}) => <span class="fn">init</span>());
-{'}'}</pre>
+          <pre><span class="cm">// vite.config.ts</span>
+<span class="kw">import</span> {'{'} feedthrough {'}'} <span class="kw">from</span> <span class="str">"@feedthrough/vite"</span>;
+<span class="fn">defineConfig</span>({'{'} plugins: [<span class="fn">feedthrough</span>()] {'}'});</pre>
           <p class="or">Or with Cypress:</p>
           <pre><span class="cm">// cypress/support/e2e.ts</span>
 <span class="kw">import</span> {'{'} setupFeedthrough {'}'} <span class="kw">from</span> <span class="str">"@feedthrough/cypress"</span>;
@@ -52,10 +51,10 @@
       <div class="step">
         <div class="num">4</div>
         <div class="body">
-          <h3>Ask Claude what's wrong</h3>
+          <h3>Ask your AI agent what's wrong</h3>
           <pre><span class="cm">&gt; Why is the counter showing the wrong number?</span>
 
-<span class="acc">Claude:</span> I'll check the console logs and inspect the element.
+<span class="acc">Agent:</span> I'll check the console logs and inspect the element.
 
   get_console_logs()         <span class="cm">→ total: 1, 2, 3</span>
   inspect_element("#count")  <span class="cm">→ textContent: "2, 4, 6"</span>

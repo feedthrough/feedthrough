@@ -3,3 +3,4 @@ dist/
 **/src/generated/
 *.tsbuildinfo
 .DS_Store
+website/.astro/
