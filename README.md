@@ -24,9 +24,9 @@ Claude Code / Cursor / any MCP client
 
 ## The name
 
-A feedthrough is a vacuum systems component that passes signals out of a sealed chamber without
-breaking the vacuum. You can't reach inside — but the feedthrough lets you observe and control
-what's happening in there anyway.
+A feedthrough is a vacuum systems component that passes signals in and out of a sealed chamber
+without breaking the vacuum. You can't reach inside directly — but the feedthrough lets you
+observe and control what's happening in there anyway.
 
 The parallel is exact: Feedthrough extracts runtime debug data from inside a running web app
 without disturbing it.
