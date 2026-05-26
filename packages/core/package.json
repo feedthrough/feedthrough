@@ -6,11 +6,12 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/build-iife.mjs",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "esbuild": "^0.28.0",
     "typescript": "^5.8.3"
   }
 }

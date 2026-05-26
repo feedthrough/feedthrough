@@ -3,3 +3,4 @@ packages:
   - "examples/*"
 allowBuilds:
   cypress: false
+  esbuild: true

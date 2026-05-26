@@ -9,9 +9,10 @@
     "node": ">=22"
   },
   "scripts": {
+    "prebuild": "node scripts/embed-bundle.mjs",
     "build": "tsc",
-    "dev": "tsc --watch",
-    "typecheck": "tsc --noEmit"
+    "dev": "node scripts/embed-bundle.mjs && tsc --watch",
+    "typecheck": "node scripts/embed-bundle.mjs && tsc --noEmit"
   },
   "dependencies": {
     "@feedthrough/core": "workspace:*"
