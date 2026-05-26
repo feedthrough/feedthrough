@@ -1,0 +1,55 @@
+# @feedthrough/mcp
+
+The MCP server. Runs a WebSocket server that the browser bridge connects to, and exposes all
+bridge capabilities as MCP tools over stdio.
+
+## Usage
+
+```bash
+# via npx (once published)
+npx @feedthrough/mcp
+
+# from the monorepo
+node packages/mcp/dist/index.js
+```
+
+Set `FEEDTHROUGH_PORT` to override the default WebSocket port (8765).
+
+## Claude Code config
+
+Add to `.claude/settings.json` or `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "feedthrough": {
+      "command": "npx",
+      "args": ["@feedthrough/mcp"]
+    }
+  }
+}
+```
+
+## Tools
+
+| Tool | Input | Description |
+|---|---|---|
+| `click` | `selector: string` | Click a DOM element |
+| `fill` | `selector: string`, `value: string` | Type into an input |
+| `hover` | `selector: string` | Fire mouseover/mouseenter |
+| `inspect_element` | `selector: string` | Full element details — tag, classes, attributes, rect, styles |
+| `query_dom` | `selector: string` | All matching elements, summarised |
+| `get_console_logs` | `limit?: number` | Console output captured since bridge connected |
+| `get_network_requests` | `filter?: string` | Fetch + XHR requests; filter by URL substring or method |
+| `screenshot` | — | Page screenshot *(coming soon)* |
+| `connection_status` | — | Whether a browser is currently connected |
+
+## Architecture
+
+```
+Claude Code  ──stdio──  @feedthrough/mcp  ──ws://localhost:8765──  @feedthrough/core (browser)
+```
+
+The server accepts one browser connection at a time. If a second browser connects, it replaces
+the first. Commands are sent with unique IDs and matched to responses with a 10-second timeout.
+All debug output goes to stderr so stdout stays clean for the MCP protocol.
