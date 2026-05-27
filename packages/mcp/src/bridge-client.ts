@@ -29,7 +29,19 @@ export class BridgeClient {
   private counter = 0;
 
   constructor(port = 8765) {
-    this.wss = new WebSocketServer({ port });
+    this.wss = new WebSocketServer({
+      port,
+      host: "127.0.0.1",
+      verifyClient: ({ origin }: { origin: string }) => {
+        // Accept only localhost origins — no remote connections in v1.
+        try {
+          const { hostname } = new URL(origin);
+          return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+        } catch {
+          return false;
+        }
+      },
+    });
 
     this.wss.on("connection", (ws) => {
       if (this.socket) {

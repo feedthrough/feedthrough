@@ -106,10 +106,13 @@ Contains three deliberate bugs for testing the MCP diagnostic workflow:
 3. Activity feed fetches `/api/events` (wrong URL, 404), error swallowed silently — detectable
    via `get_network_requests` + `get_console_logs`
 
-## MCP tools (all nine)
+## MCP tools (all ten)
 
-`click`, `fill`, `hover`, `inspect_element`, `query_dom`, `get_console_logs`,
-`get_network_requests`, `screenshot` (placeholder), `connection_status`
+`get_instructions`, `connection_status`, `get_console_logs`, `get_network_requests`,
+`query_dom`, `inspect_element`, `click`, `fill`, `hover`, `screenshot` (placeholder)
+
+WebSocket server binds to `127.0.0.1` only and validates the `Origin` header (localhost origins
+only) — v1 is explicitly local-only.
 
 ## Session progress
 

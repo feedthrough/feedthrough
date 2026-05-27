@@ -1,10 +1,13 @@
 # Feedthrough
 
-**An MCP server that lives inside your web app and knows its internals.**
+**Debug with AI — from inside your app.**
 
 Feedthrough injects a lightweight debug bridge into any running web page, then exposes everything
 — DOM state, console logs, network requests, and user interactions — as MCP tools. Any
 MCP-compatible AI agent can inspect and drive the page conversationally, in real time.
+
+Built by the author of [CamillaDSP](https://github.com/HEnquist/camilladsp) and the
+[rubato](https://github.com/HEnquist/rubato) resampler (~20M downloads on crates.io).
 
 ```
 Browser (any)
@@ -110,7 +113,7 @@ import { setupFeedthrough } from "@feedthrough/cypress";
 setupFeedthrough();
 ```
 
-### 4. Open your page and start asking Claude
+### 4. Open your page and start asking
 
 Once the bridge connects you'll see `[feedthrough] browser connected` in the MCP server output.
 Then ask your AI agent:
@@ -154,6 +157,47 @@ cd packages/mcp && node dist/index.js
 
 Connect an AI agent and ask it to find what's wrong. The three bugs are all invisible from the
 UI but findable in under a minute via `get_console_logs`, `get_network_requests`, and `query_dom`.
+
+---
+
+## Using with an AI agent
+
+### Recommended workflow
+
+1. `connection_status()` — confirm the bridge is connected before anything else
+2. `get_console_logs()` — errors and app output often identify the root cause immediately
+3. `get_network_requests()` — look for failed fetches, wrong URLs, or missing calls
+4. `query_dom(selector)` — find elements and check what's rendered
+5. `inspect_element(selector)` — deep-dive on a specific element
+6. `click()` / `fill()` — interact, then re-check logs and network
+
+### Claude Code — CLAUDE.md snippet
+
+Add this to your project's `CLAUDE.md` to prime Claude with the right workflow:
+
+```markdown
+## Debugging with Feedthrough
+
+A Feedthrough MCP server is configured. When investigating UI bugs:
+
+1. Call `connection_status()` first — fail fast if no browser is connected.
+2. Check `get_console_logs()` before touching the DOM.
+3. Check `get_network_requests()` for failed or missing API calls.
+4. Use `query_dom` to orient yourself, `inspect_element` to dig into a specific element.
+5. Interact with `click` / `fill`, then re-check logs.
+
+Prefer element IDs as selectors — they're stable. Avoid long attribute selectors.
+```
+
+### Sample system prompt
+
+For one-off sessions with any MCP client:
+
+```
+You have access to the Feedthrough MCP server. It gives you live access to a running web app
+from inside the browser — console logs, network requests, DOM state, and the ability to click
+and fill inputs. Start by calling get_instructions() for the recommended workflow.
+```
 
 ---
 
