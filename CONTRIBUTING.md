@@ -15,7 +15,7 @@ text.
 ## Getting started
 
 ```bash
-git clone https://github.com/HEnquist/feedthrough.git
+git clone https://github.com/feedthrough/feedthrough.git
 cd feedthrough
 pnpm install   # Node ≥ 22 required
 pnpm build
