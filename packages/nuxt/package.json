@@ -1,5 +1,5 @@
 {
-  "name": "@feedthrough/webpack",
+  "name": "@feedthrough/nuxt",
   "version": "0.0.1",
   "license": "MIT",
   "type": "module",
@@ -13,14 +13,16 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@feedthrough/core": "workspace:*"
+    "@feedthrough/core": "workspace:*",
+    "@feedthrough/vite": "workspace:*",
+    "@nuxt/kit": "^3.17.3"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
-    "typescript": "^5.8.3",
-    "webpack": "^5.99.9"
+    "nuxt": "^3.17.3",
+    "typescript": "^5.8.3"
   },
   "peerDependencies": {
-    "webpack": ">=5"
+    "nuxt": ">=3"
   }
 }

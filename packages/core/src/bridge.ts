@@ -21,7 +21,12 @@ export class FeedthroughBridge {
 
     // Transport is constructed first; the onMessage callback closes over `this`
     // which is safe because WebSocket messages only arrive after connect() returns.
-    this.transport = new Transport(url, (msg) => this.commandHandler.handle(msg), () => {}, reconnectDelay);
+    this.transport = new Transport(
+      url,
+      (msg) => this.commandHandler.handle(msg),
+      (connected) => { if (connected) this.transport.send({ type: "hello", url: window.location.href }); },
+      reconnectDelay,
+    );
     this.commandHandler = new CommandHandler(this.transport, this.consoleInterceptor, this.networkInterceptor);
   }
 

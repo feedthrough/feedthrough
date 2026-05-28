@@ -70,7 +70,7 @@ via Puppeteer or CDP and only works in Chrome. Feedthrough is an **embedded agen
 npx @feedthrough/mcp
 ```
 
-The server listens for a browser connection on `ws://localhost:8765` and exposes MCP tools on
+The server listens for browser connections on `ws://127.0.0.1:8765` and exposes MCP tools on
 stdio. Override the port with `FEEDTHROUGH_PORT=9000`.
 
 ### 2. Add it to your MCP client config
@@ -115,7 +115,10 @@ setupFeedthrough();
 
 ### 4. Open your page and start asking
 
-Once the bridge connects you'll see `[feedthrough] browser connected` in the MCP server output.
+Once the bridge connects you'll see `[feedthrough] tab connected` in the MCP server output.
+For the simplest experience, keep a single tab open. Multiple tabs can connect at the same time
+and commands are routed to the most recently active one, but a single tab avoids any ambiguity.
+
 Then ask your AI agent:
 
 ```
@@ -138,7 +141,7 @@ Then ask your AI agent:
 | `get_console_logs(limit?)` | Captured console output since the bridge connected |
 | `get_network_requests(filter?)` | Captured fetch + XHR requests, with status codes |
 | `screenshot()` | Page screenshot *(requires canvas library — coming soon)* |
-| `connection_status()` | Check whether a browser is currently connected |
+| `connection_status()` | List connected tabs and which one is currently active |
 
 ---
 
@@ -198,6 +201,19 @@ You have access to the Feedthrough MCP server. It gives you live access to a run
 from inside the browser — console logs, network requests, DOM state, and the ability to click
 and fill inputs. Start by calling get_instructions() for the recommended workflow.
 ```
+
+---
+
+## Security
+
+v1 is local-only. Two guards enforce this:
+
+- **Localhost binding** — the WebSocket server binds to `127.0.0.1`, so it is not reachable
+  from other machines on the network.
+- **Origin validation** — each incoming WebSocket connection is checked against its `Origin` header.
+  Connections from any origin other than `localhost` or `127.0.0.1` are rejected.
+
+Do not inject `@feedthrough/core` into production builds.
 
 ---
 

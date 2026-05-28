@@ -28,7 +28,12 @@ export interface ResultMessage {
   error?: string;
 }
 
-export type BrowserMessage = ConsoleMessage | NetworkMessage | ResultMessage;
+export interface HelloMessage {
+  type: "hello";
+  url: string;
+}
+
+export type BrowserMessage = ConsoleMessage | NetworkMessage | ResultMessage | HelloMessage;
 
 // ── Server → browser ──────────────────────────────────────────────────────────
 

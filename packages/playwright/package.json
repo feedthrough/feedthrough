@@ -1,5 +1,5 @@
 {
-  "name": "@feedthrough/webpack",
+  "name": "@feedthrough/playwright",
   "version": "0.0.1",
   "license": "MIT",
   "type": "module",
@@ -9,18 +9,20 @@
     "node": ">=22"
   },
   "scripts": {
+    "prebuild": "node scripts/embed-bundle.mjs",
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "dev": "node scripts/embed-bundle.mjs && tsc --watch",
+    "typecheck": "node scripts/embed-bundle.mjs && tsc --noEmit"
   },
   "dependencies": {
     "@feedthrough/core": "workspace:*"
   },
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
     "@types/node": "^22.15.21",
-    "typescript": "^5.8.3",
-    "webpack": "^5.99.9"
+    "typescript": "^5.8.3"
   },
   "peerDependencies": {
-    "webpack": ">=5"
+    "@playwright/test": ">=1.40"
   }
 }

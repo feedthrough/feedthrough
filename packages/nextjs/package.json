@@ -1,5 +1,5 @@
 {
-  "name": "@feedthrough/webpack",
+  "name": "@feedthrough/nextjs",
   "version": "0.0.1",
   "license": "MIT",
   "type": "module",
@@ -13,14 +13,15 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@feedthrough/core": "workspace:*"
+    "@feedthrough/core": "workspace:*",
+    "@feedthrough/webpack": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
-    "typescript": "^5.8.3",
-    "webpack": "^5.99.9"
+    "next": "^15.3.2",
+    "typescript": "^5.8.3"
   },
   "peerDependencies": {
-    "webpack": ">=5"
+    "next": ">=14"
   }
 }

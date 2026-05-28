@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedthrough Playwright Demo</title>
+</head>
+<body>
+  <main style="font-family:sans-serif;max-width:600px;margin:40px auto;padding:0 20px">
+    <h1>Team Dashboard</h1>
+
+    <section id="counter-section">
+      <h2>Page Views</h2>
+      <p>Total views: <strong id="view-count">0</strong></p>
+      <button id="record-view-btn">Record View</button>
+      <p style="color:#888;font-size:13px">Each click should add 1 view.</p>
+    </section>
+
+    <hr style="margin:32px 0">
+
+    <section id="search-section">
+      <h2>Team Directory</h2>
+      <input id="search-input" type="text" placeholder="Search by name or department…"
+        style="width:100%;padding:6px 8px;box-sizing:border-box;margin-bottom:12px">
+      <p id="result-count" style="color:#888;font-size:13px"></p>
+      <ul id="member-list" style="list-style:none;padding:0;margin:0"></ul>
+    </section>
+
+    <hr style="margin:32px 0">
+
+    <section id="feed-section">
+      <h2>Activity Feed</h2>
+      <button id="refresh-btn">Refresh Feed</button>
+      <p id="feed-status" style="color:#888;font-size:13px;margin-top:8px">No events yet. Click Refresh.</p>
+    </section>
+  </main>
+
+  <script>
+    const TEAM = [
+      { id: 1, name: "Alice Chen",   department: "Platform" },
+      { id: 2, name: "Bob Martinez", department: "Product"  },
+      { id: 3, name: "Carol Smith",  department: "Platform" },
+      { id: 4, name: "David Kim",    department: "Product"  },
+      { id: 5, name: "Eve Johnson",  department: "Data"     },
+      { id: 6, name: "Frank Lee",    department: "Data"     },
+    ];
+
+    // BUG 1: increments by 2 but logs +1
+    let views = 0;
+    document.getElementById("record-view-btn").addEventListener("click", () => {
+      const next = views + 1;
+      console.log("page view recorded, total:", next);
+      views += 2;
+      document.getElementById("view-count").textContent = views;
+    });
+
+    // BUG 2: case-sensitive name search
+    const memberList = document.getElementById("member-list");
+    const resultCount = document.getElementById("result-count");
+    function renderTeam(q) {
+      const results = TEAM.filter(m =>
+        m.name.includes(q) || m.department.toLowerCase().includes(q.toLowerCase())
+      );
+      resultCount.textContent = q
+        ? `${results.length} of ${TEAM.length} members match`
+        : `${TEAM.length} members`;
+      memberList.innerHTML = results.map(m =>
+        `<li data-member-id="${m.id}" style="padding:6px 0;border-bottom:1px solid #eee">
+          <strong>${m.name}</strong> — ${m.department}
+        </li>`
+      ).join("");
+    }
+    renderTeam("");
+    document.getElementById("search-input").addEventListener("input", e => {
+      console.log("searching team for:", e.target.value);
+      renderTeam(e.target.value);
+    });
+
+    // BUG 3: fetch from wrong URL (404), error swallowed
+    document.getElementById("refresh-btn").addEventListener("click", async () => {
+      document.getElementById("feed-status").textContent = "Loading…";
+      console.log("refreshing activity feed...");
+      try {
+        const res = await fetch("/api/events");
+        const data = await res.json();
+        console.log("feed loaded,", data.length, "events");
+        document.getElementById("feed-status").textContent = "";
+      } catch (err) {
+        console.error("feed fetch failed:", err);
+        document.getElementById("feed-status").textContent = "No events yet. Click Refresh.";
+      }
+    });
+  </script>
+</body>
+</html>

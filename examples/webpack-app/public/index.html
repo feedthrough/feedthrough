@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedthrough Webpack Demo</title>
+</head>
+<body>
+  <main style="font-family:sans-serif;max-width:600px;margin:40px auto;padding:0 20px">
+    <h1>Team Dashboard</h1>
+
+    <section id="counter-section">
+      <h2>Page Views</h2>
+      <p>Total views: <strong id="view-count">0</strong></p>
+      <button id="record-view-btn">Record View</button>
+      <p style="color:#888;font-size:13px">Each click should add 1 view.</p>
+    </section>
+
+    <hr style="margin:32px 0">
+
+    <section id="search-section">
+      <h2>Team Directory</h2>
+      <input id="search-input" type="text" placeholder="Search by name or department…"
+        style="width:100%;padding:6px 8px;box-sizing:border-box;margin-bottom:12px">
+      <p id="result-count" style="color:#888;font-size:13px"></p>
+      <ul id="member-list" style="list-style:none;padding:0;margin:0"></ul>
+    </section>
+
+    <hr style="margin:32px 0">
+
+    <section id="feed-section">
+      <h2>Activity Feed</h2>
+      <button id="refresh-btn">Refresh Feed</button>
+      <p id="feed-status" style="color:#888;font-size:13px;margin-top:8px">No events yet. Click Refresh.</p>
+      <ul id="event-list" style="list-style:none;padding:0;margin-top:8px"></ul>
+    </section>
+  </main>
+</body>
+</html>

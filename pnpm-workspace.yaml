@@ -3,6 +3,7 @@ packages:
   - "examples/*"
   - "website"
 allowBuilds:
+  '@parcel/watcher': true
   cypress: false
   esbuild: true
   sharp: true
