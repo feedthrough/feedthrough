@@ -55,7 +55,7 @@ The bridge is injected into the page, so you see framework state, not just the r
 
 export async function startServer(port = 8765): Promise<void> {
   const bridge = new BridgeClient(port);
-  const server = new McpServer({ name: "feedthrough", version: "0.0.1" });
+  const server = new McpServer({ name: "feedthrough", version: "0.1.0" });
 
   server.registerTool("get_instructions", {
     description:

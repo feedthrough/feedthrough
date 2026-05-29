@@ -13,14 +13,20 @@ it works in any browser and has access to framework internals.
 
 ```
 packages/
-  core/      @feedthrough/core     — in-browser bridge (browser TS, builds ESM + IIFE)
-  mcp/       @feedthrough/mcp      — MCP server (Node TS, stdio transport)
-  cypress/   @feedthrough/cypress  — Cypress adapter (injects IIFE via window:before:load)
-  vite/      @feedthrough/vite     — Vite plugin stub (not yet implemented)
-  webpack/   @feedthrough/webpack  — Webpack plugin stub (not yet implemented)
-website/                           — Astro landing page (feedthrough.dev)
-examples/
-  react-app/                       — Vite + React demo with three deliberate bugs
+  core/        @feedthrough/core       — in-browser bridge (browser TS, builds ESM + IIFE)
+  mcp/         @feedthrough/mcp        — MCP server (Node TS, stdio transport)
+  cypress/     @feedthrough/cypress    — Cypress adapter (injects IIFE via window:before:load)
+  playwright/  @feedthrough/playwright — Playwright adapter (injects via page.addInitScript)
+  vite/        @feedthrough/vite       — Vite plugin (virtual module + transformIndexHtml)
+  webpack/     @feedthrough/webpack    — Webpack plugin (global entry, dev-mode only)
+  nextjs/      @feedthrough/nextjs     — Next.js adapter (wraps the webpack config)
+  nuxt/        @feedthrough/nuxt       — Nuxt 3 module (adds the Vite plugin)
+  sveltekit/   @feedthrough/sveltekit  — SvelteKit adapter (handle hook + transformPageChunk)
+  remix/       @feedthrough/remix      — Remix adapter (Vite dev-server middleware)
+website/                               — Astro landing page (feedthrough.dev)
+examples/                              — one demo app per adapter (react, vue, nextjs, nuxt,
+                                         sveltekit, remix, webpack, playwright); react-app
+                                         carries three deliberate bugs for the MCP workflow
 ```
 
 ## Common commands
@@ -128,8 +134,9 @@ only) — v1 is explicitly local-only.
   @feedthrough/nuxt (+ example apps); multi-tab WebSocket; security section in README
 - ✅ Session 7c — @feedthrough/sveltekit, @feedthrough/remix (+ example apps); framework support
   matrix in README; tested Remix/SvelteKit/Astro against vite adapter (all FAIL — need own adapters)
-- ⬜ Session 8 — CI (GitHub Actions): build/typecheck job + Playwright integration tests (bridge
-  protocol, console/network/DOM commands) + website build job
+- ✅ Session 8 — CI (GitHub Actions): build/typecheck job + Playwright integration tests (bridge
+  protocol, console/network/DOM commands) + website build job. Publish workflow (OIDC trusted
+  publishing) and pre-release hardening also landed.
 
 ## Do later
 

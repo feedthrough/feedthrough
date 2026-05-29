@@ -36,6 +36,7 @@ Add to `.claude/settings.json` or `~/.claude.json`:
 
 | Tool | Input | Description |
 |---|---|---|
+| `get_instructions` | — | Usage guide: recommended workflow, tool ordering, selector tips |
 | `click` | `selector: string` | Click a DOM element |
 | `fill` | `selector: string`, `value: string` | Type into an input |
 | `hover` | `selector: string` | Fire mouseover/mouseenter |
@@ -52,6 +53,7 @@ Add to `.claude/settings.json` or `~/.claude.json`:
 AI agent  ──stdio──  @feedthrough/mcp  ──ws://localhost:8765──  @feedthrough/core (browser)
 ```
 
-The server accepts one browser connection at a time. If a second browser connects, it replaces
-the first. Commands are sent with unique IDs and matched to responses with a 10-second timeout.
-All debug output goes to stderr so stdout stays clean for the MCP protocol.
+Multiple browser tabs can be connected at once; commands are routed to the most recently active
+tab, and `connection_status` lists them all. Commands are sent with unique IDs and matched to
+responses with a 10-second timeout. All debug output goes to stderr so stdout stays clean for
+the MCP protocol.

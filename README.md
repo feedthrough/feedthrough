@@ -197,6 +197,7 @@ Then ask your AI agent:
 
 | Tool | Description |
 |---|---|
+| `get_instructions()` | Usage guide — recommended workflow, tool ordering, and selector tips |
 | `click(selector)` | Click an element |
 | `fill(selector, value)` | Type into an input field |
 | `hover(selector)` | Trigger mouseover/mouseenter |
