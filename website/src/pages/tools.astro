@@ -1,0 +1,117 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
+import { tools } from "../data/tools";
+---
+
+<Layout
+  title="MCP tools — Feedthrough"
+  description="Reference for every MCP tool exposed by @feedthrough/mcp — inputs, behaviour, and usage notes for click, fill, inspect_element, query_dom, get_console_logs, get_network_requests, and more."
+>
+  <Nav />
+  <main>
+    <div class="container">
+      <p class="section-label">Reference</p>
+      <h2>MCP tools</h2>
+      <p class="section-sub">Every tool exposed by <code>@feedthrough/mcp</code>, with inputs and behaviour.</p>
+
+      <nav class="toc">
+        {tools.map(t => (
+          <a href={`#${t.id}`}>{t.name}</a>
+        ))}
+      </nav>
+
+      <div class="tools">
+        {tools.map(t => (
+          <article id={t.id} class="tool">
+            <h3 class="sig">{t.name}</h3>
+            <p class="long">{t.long}</p>
+            {t.inputs && t.inputs.length > 0 && (
+              <div class="inputs">
+                <h4>Inputs</h4>
+                <ul>
+                  {t.inputs.map(inp => (
+                    <li>
+                      <code>{inp.name}</code>
+                      <span class="type">{inp.type}</span>
+                      <span class="sep">·</span>
+                      <span class="desc">{inp.desc}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </article>
+        ))}
+      </div>
+    </div>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  main { padding: 64px 0; }
+
+  .toc {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-bottom: 32px;
+  }
+  .toc a {
+    font-family: var(--font-mono); font-size: 0.75rem;
+    padding: 4px 10px; border-radius: 4px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text-muted); text-decoration: none;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .toc a:hover {
+    color: var(--accent); border-color: rgba(34,211,238,0.4);
+    text-decoration: none;
+  }
+
+  .tools { display: flex; flex-direction: column; gap: 16px; }
+
+  .tool {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 24px;
+    scroll-margin-top: 80px; /* sticky-nav offset on anchor jumps */
+  }
+  .sig {
+    font-family: var(--font-mono); font-size: 1rem;
+    color: var(--accent); font-weight: 500;
+    margin-bottom: 12px;
+  }
+  .long {
+    color: var(--text-muted); font-size: 0.9375rem; line-height: 1.7;
+    margin-bottom: 14px;
+  }
+
+  .inputs h4 {
+    font-size: 0.7rem; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .inputs ul { list-style: none; padding: 0; margin: 0; }
+  .inputs li {
+    font-size: 0.8125rem; color: var(--text-muted);
+    padding: 4px 0; line-height: 1.6;
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px;
+  }
+  .inputs code {
+    font-family: var(--font-mono); font-size: 0.8125rem;
+    color: var(--text); background: var(--bg-code);
+    padding: 1px 6px; border-radius: 3px;
+  }
+  .inputs .type {
+    font-family: var(--font-mono); font-size: 0.75rem;
+    color: var(--accent);
+  }
+  .inputs .sep { color: var(--text-dim); }
+  .inputs .desc { color: var(--text-muted); }
+
+  /* inline code in body copy (e.g. @feedthrough/mcp in the subtitle) */
+  .section-sub code {
+    font-family: var(--font-mono); font-size: 0.875rem;
+    color: var(--accent);
+  }
+</style>

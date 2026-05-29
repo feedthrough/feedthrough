@@ -1,15 +1,5 @@
 ---
-const tools = [
-  { name: "get_instructions()",            desc: "Usage guide — recommended workflow and selector tips" },
-  { name: "click(selector)",               desc: "Click any element by CSS selector" },
-  { name: "fill(selector, value)",          desc: "Type into an input, fires input + change events" },
-  { name: "hover(selector)",               desc: "Trigger mouseover / mouseenter" },
-  { name: "inspect_element(selector)",     desc: "Tag, classes, attributes, bounding rect, computed styles" },
-  { name: "query_dom(selector)",           desc: "All elements matching a selector, summarised" },
-  { name: "get_console_logs(limit?)",      desc: "Console output from every method — log/warn/error, plus dir, table, assert, trace, count, time, group" },
-  { name: "get_network_requests(filter?)", desc: "Fetch + XHR with headers and request/response bodies, capped at 10 KB" },
-  { name: "connection_status()",           desc: "Check whether a browser is currently connected" },
-];
+import { tools } from "../data/tools";
 ---
 
 <section>
@@ -19,10 +9,10 @@ const tools = [
     <p class="section-sub">All tools are available the moment a browser connects.</p>
     <div class="grid fade">
       {tools.map(t => (
-        <div class="card">
+        <a class="card" href={`/tools#${t.id}`}>
           <div class="name">{t.name}</div>
-          <div class="desc">{t.desc}</div>
-        </div>
+          <div class="desc">{t.short}</div>
+        </a>
       ))}
     </div>
   </div>
@@ -31,11 +21,13 @@ const tools = [
 <style>
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
   .card {
+    display: block;
     background: var(--bg-card); border: 1px solid var(--border);
     border-radius: 10px; padding: 16px;
+    text-decoration: none;
     transition: border-color 0.15s;
   }
-  .card:hover { border-color: rgba(34,211,238,0.4); }
+  .card:hover { border-color: rgba(34,211,238,0.4); text-decoration: none; }
   .name {
     font-family: var(--font-mono); font-size: 0.8rem;
     color: var(--accent); margin-bottom: 4px;

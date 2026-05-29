@@ -1,0 +1,60 @@
+---
+const frameworks = [
+  { name: "Vite",       pkg: "@feedthrough/vite",       mech: "Plugin · virtual module + transformIndexHtml" },
+  { name: "Next.js",    pkg: "@feedthrough/nextjs",     mech: "Wraps the dev webpack config" },
+  { name: "Nuxt",       pkg: "@feedthrough/nuxt",       mech: "Nuxt 3 module — registers the Vite plugin" },
+  { name: "SvelteKit",  pkg: "@feedthrough/sveltekit",  mech: "Server handle hook · transformPageChunk" },
+  { name: "Remix",      pkg: "@feedthrough/remix",      mech: "Vite dev-server middleware, streams HTML" },
+  { name: "webpack",    pkg: "@feedthrough/webpack",    mech: "Dev-only entry plugin" },
+  { name: "Cypress",    pkg: "@feedthrough/cypress",    mech: "cypress/support/e2e.ts — window:before:load" },
+  { name: "Playwright", pkg: "@feedthrough/playwright", mech: "Test fixture — page.addInitScript" },
+];
+---
+
+<section id="frameworks">
+  <div class="container">
+    <p class="section-label">Framework support</p>
+    <h2>Eight first-party adapters</h2>
+    <p class="section-sub">One adapter per framework — mechanism shown on each card. All published under <a href="https://www.npmjs.com/search?q=%40feedthrough" target="_blank" rel="noopener">@feedthrough on npm</a>.</p>
+    <div class="grid fade">
+      {frameworks.map(f => (
+        <a class="card" href={`https://www.npmjs.com/package/${f.pkg}`} target="_blank" rel="noopener">
+          <div class="name">{f.name}</div>
+          <div class="pkg">{f.pkg}</div>
+          <div class="mech">{f.mech}</div>
+        </a>
+      ))}
+    </div>
+    <p class="suggest">
+      Don't see yours?
+      <a href="https://github.com/feedthrough/feedthrough/issues/new" target="_blank" rel="noopener">Open an issue</a>
+      to suggest an adapter for an additional framework.
+    </p>
+  </div>
+</section>
+
+<style>
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .card {
+    display: block;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+    text-decoration: none;
+    transition: border-color 0.15s;
+  }
+  .card:hover { border-color: rgba(34,211,238,0.4); text-decoration: none; }
+  .name {
+    font-size: 0.9rem; font-weight: 600; color: var(--text);
+    margin-bottom: 4px;
+  }
+  .pkg {
+    font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .mech { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+
+  .suggest {
+    margin-top: 20px; text-align: center;
+    font-size: 0.8125rem; color: var(--text-muted);
+  }
+</style>
