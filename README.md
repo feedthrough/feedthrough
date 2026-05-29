@@ -294,6 +294,24 @@ pnpm typecheck     # typecheck all packages
 
 Requires Node.js ≥ 22 and pnpm.
 
+## Releasing
+
+All packages are versioned together. To cut a release:
+
+```bash
+# 1. Bump all packages to the new version
+pnpm -r exec npm version 0.2.0 --no-git-tag-version
+git add packages/*/package.json
+git commit -m "Release 0.2.0"
+git push
+
+# 2. Publish to npm (run from the repo root, requires npm login)
+pnpm -r --filter './packages/*' publish
+
+# 3. Tag and create a GitHub release
+git tag v0.2.0 && git push origin v0.2.0
+```
+
 ---
 
 ## License
