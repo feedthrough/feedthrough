@@ -70,11 +70,30 @@ export class BridgeClient {
       },
     });
 
+    // Server-level errors (most commonly EADDRINUSE on startup). Without this
+    // listener Node would crash on an unhandled 'error' event.
+    this.wss.on("error", (err: NodeJS.ErrnoException) => {
+      if (err.code === "EADDRINUSE") {
+        process.stderr.write(
+          `[feedthrough] port ${port} is already in use — set FEEDTHROUGH_PORT to a free port\n`,
+        );
+        process.exit(1);
+      }
+      process.stderr.write(`[feedthrough] websocket server error: ${err.message}\n`);
+    });
+
     this.wss.on("connection", (ws) => {
       const id = `tab-${++this.counter}`;
       const conn: Connection = { id, ws, url: "(unknown)", lastActivity: Date.now(), connectedAt: Date.now() };
       this.connections.set(id, conn);
       process.stderr.write(`[feedthrough] tab connected (${id}), open tabs: ${this.openCount}\n`);
+
+      // Per-connection errors (dropped TCP, malformed frames, etc.). Without
+      // this listener one misbehaving tab would crash the whole MCP server.
+      // 'close' fires after 'error', so cleanup still happens in the close handler.
+      ws.on("error", (err) => {
+        process.stderr.write(`[feedthrough] tab error (${id}): ${err.message}\n`);
+      });
 
       ws.on("message", (data) => {
         let msg: unknown;
