@@ -1,5 +1,7 @@
 # @feedthrough/sveltekit
 
+[feedthrough.dev](https://feedthrough.dev) · [npm](https://www.npmjs.com/package/@feedthrough/sveltekit) · [GitHub](https://github.com/feedthrough/feedthrough)
+
 SvelteKit adapter for [Feedthrough](https://feedthrough.dev). Injects the browser bridge into
 every server-rendered page during development so an AI agent can observe console logs, network
 requests, and DOM state in real time.

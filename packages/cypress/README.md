@@ -1,6 +1,8 @@
 # @feedthrough/cypress
 
-Cypress adapter for Feedthrough. Automatically injects the bridge into the app under test
+[feedthrough.dev](https://feedthrough.dev) · [npm](https://www.npmjs.com/package/@feedthrough/cypress) · [GitHub](https://github.com/feedthrough/feedthrough)
+
+Cypress adapter for [Feedthrough](https://feedthrough.dev). Automatically injects the bridge into the app under test
 before each page load, so console output and network requests are captured from the very first
 line of page JavaScript.
 

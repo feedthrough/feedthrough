@@ -1,7 +1,9 @@
 # @feedthrough/mcp
 
-The MCP server. Runs a WebSocket server that the browser bridge connects to, and exposes all
-bridge capabilities as MCP tools over stdio.
+[feedthrough.dev](https://feedthrough.dev) · [npm](https://www.npmjs.com/package/@feedthrough/mcp) · [GitHub](https://github.com/feedthrough/feedthrough)
+
+The MCP server for [Feedthrough](https://feedthrough.dev). Runs a WebSocket server that the
+browser bridge connects to, and exposes all bridge capabilities as MCP tools over stdio.
 
 ## Usage
 

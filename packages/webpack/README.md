@@ -1,6 +1,8 @@
 # @feedthrough/webpack
 
-Webpack 5 plugin for Feedthrough. Injects the bridge automatically in development mode — no
+[feedthrough.dev](https://feedthrough.dev) · [npm](https://www.npmjs.com/package/@feedthrough/webpack) · [GitHub](https://github.com/feedthrough/feedthrough)
+
+Webpack 5 plugin for [Feedthrough](https://feedthrough.dev). Injects the bridge automatically in development mode — no
 changes to your app code needed. Has no effect on production builds.
 
 ## Install

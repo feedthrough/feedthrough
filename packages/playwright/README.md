@@ -1,6 +1,8 @@
 # @feedthrough/playwright
 
-Playwright adapter for Feedthrough. Injects the bridge into every page before it loads, so
+[feedthrough.dev](https://feedthrough.dev) · [npm](https://www.npmjs.com/package/@feedthrough/playwright) · [GitHub](https://github.com/feedthrough/feedthrough)
+
+Playwright adapter for [Feedthrough](https://feedthrough.dev). Injects the bridge into every page before it loads, so
 console output and network requests are captured from the first line of page JavaScript.
 
 While your tests run, an AI agent connected to the MCP server can observe what's happening

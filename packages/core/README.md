@@ -1,6 +1,8 @@
 # @feedthrough/core
 
-The in-browser debug bridge. Intercepts console output, fetch, and XHR; handles incoming
+[feedthrough.dev](https://feedthrough.dev) · [npm](https://www.npmjs.com/package/@feedthrough/core) · [GitHub](https://github.com/feedthrough/feedthrough)
+
+The in-browser debug bridge for [Feedthrough](https://feedthrough.dev). Intercepts console output, fetch, and XHR; handles incoming
 commands; streams everything to the MCP server over WebSocket.
 
 ## Usage

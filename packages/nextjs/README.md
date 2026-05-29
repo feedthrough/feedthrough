@@ -1,6 +1,8 @@
 # @feedthrough/nextjs
 
-Next.js adapter for Feedthrough. Wraps your Next.js config to inject the bridge on the
+[feedthrough.dev](https://feedthrough.dev) · [npm](https://www.npmjs.com/package/@feedthrough/nextjs) · [GitHub](https://github.com/feedthrough/feedthrough)
+
+Next.js adapter for [Feedthrough](https://feedthrough.dev). Wraps your Next.js config to inject the bridge on the
 client side in dev mode. Production builds (`next build`) are unaffected.
 
 ## Install

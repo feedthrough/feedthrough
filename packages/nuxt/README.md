@@ -1,6 +1,8 @@
 # @feedthrough/nuxt
 
-Nuxt 3 module for Feedthrough. Registers the Vite plugin when running in dev mode.
+[feedthrough.dev](https://feedthrough.dev) · [npm](https://www.npmjs.com/package/@feedthrough/nuxt) · [GitHub](https://github.com/feedthrough/feedthrough)
+
+Nuxt 3 module for [Feedthrough](https://feedthrough.dev). Registers the Vite plugin when running in dev mode.
 Production builds (`nuxt build`) are unaffected.
 
 ## Install

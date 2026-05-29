@@ -1,6 +1,8 @@
 # @feedthrough/vite
 
-Vite plugin for Feedthrough. Automatically injects the bridge in dev mode — no `main.ts`
+[feedthrough.dev](https://feedthrough.dev) · [npm](https://www.npmjs.com/package/@feedthrough/vite) · [GitHub](https://github.com/feedthrough/feedthrough)
+
+Vite plugin for [Feedthrough](https://feedthrough.dev). Automatically injects the bridge in dev mode — no `main.ts`
 changes needed.
 
 ## Install
