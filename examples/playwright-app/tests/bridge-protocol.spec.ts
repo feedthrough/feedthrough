@@ -273,3 +273,44 @@ test("console.trace captures the call-site stack", async ({ page }) => {
   expect(typeof msg.stack).toBe("string");
   expect(String(msg.stack).length).toBeGreaterThan(0);
 });
+
+test("get_console_logs filters by level so errors aren't buried in noise", async ({ page }) => {
+  await page.evaluate(() => {
+    console.log("ordinary log");
+    console.warn("deprecation warning");
+    console.error("real error A");
+    console.warn("another deprecation");
+    console.error("real error B");
+  });
+
+  type Entry = { level: string; args: unknown[] };
+
+  const errorsOnly = await server.command<Entry[]>("get_console_logs", { levels: ["error"] });
+  expect(errorsOnly.length).toBe(2);
+  expect(errorsOnly.every((l) => l.level === "error")).toBe(true);
+
+  const errorsAndWarns = await server.command<Entry[]>("get_console_logs", { levels: ["error", "warn"] });
+  expect(errorsAndWarns.length).toBe(4);
+  expect(errorsAndWarns.every((l) => l.level === "error" || l.level === "warn")).toBe(true);
+  expect(errorsAndWarns.some((l) => l.level === "log")).toBe(false);
+});
+
+test("get_console_logs match filter is case-insensitive", async ({ page }) => {
+  await page.evaluate(() => {
+    console.log("Connecting to /api/users");
+    console.warn("response slow");
+    console.error("AUTH failure on /api/login");
+  });
+
+  type Entry = { args: unknown[] };
+  const auth = await server.command<Entry[]>("get_console_logs", { match: "auth" });
+  expect(auth.length).toBe(1);
+  expect(JSON.stringify(auth[0].args).toLowerCase()).toContain("auth");
+
+  // levels + match compose: only errors mentioning "auth"
+  const errorsMatchingAuth = await server.command<Entry[]>(
+    "get_console_logs",
+    { levels: ["error"], match: "auth" },
+  );
+  expect(errorsMatchingAuth.length).toBe(1);
+});

@@ -76,10 +76,21 @@ export async function startServer(port = 8765): Promise<void> {
       "log/warn/error/info/debug plus dir, table, assert, trace, count, countReset, time/timeEnd/" +
       "timeLog, group/groupCollapsed/groupEnd, and clear. Each entry has a 'level' (the closest of " +
       "the five standard levels); rich methods also carry a 'method' field, and console.trace() " +
-      "plus failing console.assert() entries include a 'stack'. Always check this early — app " +
-      "errors and debug output often identify the root cause immediately.",
-    inputSchema: { limit: z.number().int().positive().optional().describe("Return only the N most-recent entries") },
-  }, ({ limit }) => run(bridge, "get_console_logs", limit !== undefined ? { limit } : {}));
+      "plus failing console.assert() entries include a 'stack'. When the app is noisy with " +
+      "framework or deprecation warnings, pass levels: ['error'] (or ['error', 'warn']) so the " +
+      "real errors aren't buried, and use 'match' to narrow further by content. Always check this " +
+      "early — app errors and debug output often identify the root cause immediately.",
+    inputSchema: {
+      limit: z.number().int().positive().optional().describe("Return only the N most-recent entries"),
+      levels: z.array(z.enum(["log", "warn", "error", "info", "debug"])).optional()
+        .describe("Restrict to these levels — e.g. ['error'] to skip noisy warn/info/debug"),
+      match: z.string().optional().describe("Case-insensitive substring filter on the serialized message content"),
+    },
+  }, ({ limit, levels, match }) => run(bridge, "get_console_logs", {
+    ...(limit !== undefined && { limit }),
+    ...(levels !== undefined && { levels }),
+    ...(match !== undefined && { match }),
+  }));
 
   server.registerTool("get_network_requests", {
     description:

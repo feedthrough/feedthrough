@@ -53,7 +53,7 @@ export interface FillCommand      { type: "command"; id: string; action: "fill";
 export interface HoverCommand     { type: "command"; id: string; action: "hover";    selector: string }
 export interface InspectCommand   { type: "command"; id: string; action: "inspect";  selector: string }
 export interface QueryDomCommand  { type: "command"; id: string; action: "query_dom"; selector: string }
-export interface GetConsoleLogsCommand    { type: "command"; id: string; action: "get_console_logs";    limit?: number }
+export interface GetConsoleLogsCommand    { type: "command"; id: string; action: "get_console_logs";    limit?: number; levels?: LogLevel[]; match?: string }
 export interface GetNetworkRequestsCommand { type: "command"; id: string; action: "get_network_requests"; filter?: string }
 
 export type Command =

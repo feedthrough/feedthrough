@@ -1,6 +1,12 @@
 import type { Transport } from "../transport";
 import type { ConsoleMessage, LogLevel } from "../types";
 
+export interface GetLogsOptions {
+  limit?: number;
+  levels?: LogLevel[];
+  match?: string;
+}
+
 const STD_LEVELS: LogLevel[] = ["log", "warn", "error", "info", "debug"];
 const MAX_LOGS = 1000;
 
@@ -139,8 +145,23 @@ export class ConsoleInterceptor {
     this.originals.clear();
   }
 
-  getLogs(limit?: number): ConsoleMessage[] {
-    return limit !== undefined ? this.logs.slice(-limit) : [...this.logs];
+  getLogs(opts: GetLogsOptions = {}): ConsoleMessage[] {
+    let result: ConsoleMessage[] = this.logs;
+    if (opts.levels && opts.levels.length > 0) {
+      const wanted = new Set(opts.levels);
+      result = result.filter(m => wanted.has(m.level));
+    }
+    if (opts.match) {
+      const needle = opts.match.toLowerCase();
+      result = result.filter(m => JSON.stringify(m.args).toLowerCase().includes(needle));
+    }
+    if (opts.limit !== undefined) {
+      result = result.slice(-opts.limit);
+    } else if (result === this.logs) {
+      // No filter and no limit — clone so callers can't mutate the buffer.
+      result = [...this.logs];
+    }
+    return result;
   }
 }
 

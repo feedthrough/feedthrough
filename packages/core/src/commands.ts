@@ -39,7 +39,7 @@ export class CommandHandler {
       case "hover":               return hoverEl(cmd.selector);
       case "inspect":             return inspectEl(cmd.selector);
       case "query_dom":           return queryDom(cmd.selector);
-      case "get_console_logs":    return this.console.getLogs(cmd.limit);
+      case "get_console_logs":    return this.console.getLogs({ limit: cmd.limit, levels: cmd.levels, match: cmd.match });
       case "get_network_requests": return this.network.getRequests(cmd.filter);
     }
   }

@@ -55,10 +55,14 @@ export const tools: Tool[] = [
   },
   {
     id: "get-console-logs",
-    name: "get_console_logs(limit?)",
+    name: "get_console_logs(limit?, levels?, match?)",
     short: "Console output from every method — log/warn/error, plus dir, table, assert, trace, count, time, group",
-    long: "Returns console output captured since the bridge connected. Covers every console method — log/warn/error/info/debug plus dir, table, assert, trace, count, countReset, time/timeEnd/timeLog, group/groupCollapsed/groupEnd, and clear. Each entry has a level (the closest of the five standard levels); rich methods also carry a method field, and console.trace() plus failing console.assert() entries include a stack. Always check this early — app errors and debug output often pinpoint the root cause immediately.",
-    inputs: [{ name: "limit", type: "number (optional)", desc: "Return only the N most recent entries" }],
+    long: "Returns console output captured since the bridge connected. Covers every console method — log/warn/error/info/debug plus dir, table, assert, trace, count, countReset, time/timeEnd/timeLog, group/groupCollapsed/groupEnd, and clear. Each entry has a level (the closest of the five standard levels); rich methods also carry a method field, and console.trace() plus failing console.assert() entries include a stack. When the app is noisy with framework or deprecation warnings, pass levels: ['error'] (or ['error', 'warn']) so real errors aren't buried, and use match to narrow further by content. Always check this early — app errors and debug output often pinpoint the root cause immediately.",
+    inputs: [
+      { name: "limit", type: "number (optional)", desc: "Return only the N most recent entries" },
+      { name: "levels", type: "('log'|'warn'|'error'|'info'|'debug')[] (optional)", desc: "Restrict to these levels — e.g. ['error'] to skip noisy warn/info/debug" },
+      { name: "match", type: "string (optional)", desc: "Case-insensitive substring filter on the serialized message content" },
+    ],
   },
   {
     id: "get-network-requests",
