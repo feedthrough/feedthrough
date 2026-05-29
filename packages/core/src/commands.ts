@@ -39,7 +39,6 @@ export class CommandHandler {
       case "hover":               return hoverEl(cmd.selector);
       case "inspect":             return inspectEl(cmd.selector);
       case "query_dom":           return queryDom(cmd.selector);
-      case "screenshot":          return screenshot();
       case "get_console_logs":    return this.console.getLogs(cmd.limit);
       case "get_network_requests": return this.network.getRequests(cmd.filter);
     }
@@ -118,11 +117,6 @@ function queryDom(selector: string) {
     classes: Array.from(el.classList),
     textContent: el.textContent?.trim().slice(0, 100),
   }));
-}
-
-function screenshot(): string {
-  // Requires a canvas library or CDP; placeholder for now
-  return "screenshot:not-implemented";
 }
 
 // ── Type guard ────────────────────────────────────────────────────────────────

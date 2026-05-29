@@ -8,7 +8,6 @@ const tools = [
   { name: "query_dom(selector)",           desc: "All elements matching a selector, summarised" },
   { name: "get_console_logs(limit?)",      desc: "Console output captured since the bridge connected" },
   { name: "get_network_requests(filter?)", desc: "Fetch + XHR with URLs, methods, and status codes" },
-  { name: "screenshot()",                  desc: "Page screenshot", soon: true },
   { name: "connection_status()",           desc: "Check whether a browser is currently connected" },
 ];
 ---
@@ -16,12 +15,12 @@ const tools = [
 <section>
   <div class="container">
     <p class="section-label">MCP Tools</p>
-    <h2>Ten tools, everything you need</h2>
+    <h2>Nine tools, everything you need</h2>
     <p class="section-sub">All tools are available the moment a browser connects.</p>
     <div class="grid fade">
       {tools.map(t => (
         <div class="card">
-          <div class="name">{t.name}{t.soon && <span class="soon">soon</span>}</div>
+          <div class="name">{t.name}</div>
           <div class="desc">{t.desc}</div>
         </div>
       ))}
@@ -41,12 +40,6 @@ const tools = [
     font-family: var(--font-mono); font-size: 0.8rem;
     color: var(--accent); margin-bottom: 4px;
     display: flex; align-items: center; gap: 8px;
-  }
-  .soon {
-    font-size: 0.65rem; font-family: var(--font-sans); font-weight: 600;
-    letter-spacing: 0.05em; text-transform: uppercase;
-    color: var(--text-dim); border: 1px solid var(--border);
-    border-radius: 4px; padding: 1px 5px;
   }
   .desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
 </style>

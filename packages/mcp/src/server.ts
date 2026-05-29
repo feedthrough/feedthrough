@@ -128,10 +128,6 @@ export async function startServer(port = 8765): Promise<void> {
     inputSchema: { selector: z.string().describe("CSS selector") },
   }, ({ selector }) => run(bridge, "hover", { selector }));
 
-  server.registerTool("screenshot", {
-    description: "Take a screenshot of the current page. Not yet implemented — returns a placeholder.",
-  }, () => run(bridge, "screenshot"));
-
   process.stderr.write(`[feedthrough] MCP server starting, bridge WebSocket on ws://127.0.0.1:${port}\n`);
   await server.connect(new StdioServerTransport());
 }

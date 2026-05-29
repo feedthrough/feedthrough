@@ -205,7 +205,6 @@ Then ask your AI agent:
 | `query_dom(selector)` | All elements matching a CSS selector |
 | `get_console_logs(limit?)` | Captured console output since the bridge connected |
 | `get_network_requests(filter?)` | Captured fetch + XHR requests, with status codes |
-| `screenshot()` | Page screenshot *(requires canvas library — coming soon)* |
 | `connection_status()` | List connected tabs and which one is currently active |
 
 ---

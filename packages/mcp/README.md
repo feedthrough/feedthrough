@@ -44,7 +44,6 @@ Add to `.claude/settings.json` or `~/.claude.json`:
 | `query_dom` | `selector: string` | All matching elements, summarised |
 | `get_console_logs` | `limit?: number` | Console output captured since bridge connected |
 | `get_network_requests` | `filter?: string` | Fetch + XHR requests; filter by URL substring or method |
-| `screenshot` | — | Page screenshot *(coming soon)* |
 | `connection_status` | — | Whether a browser is currently connected |
 
 ## Architecture
