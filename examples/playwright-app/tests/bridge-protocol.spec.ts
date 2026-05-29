@@ -161,3 +161,61 @@ test("a rejected fetch is recorded with an error field", async ({ page }) => {
   );
   expect(String(failed.error).toLowerCase()).toMatch(/abort/);
 });
+
+test("request and response bodies + headers are captured", async ({ page }) => {
+  await page.route("**/api/echo", (route) =>
+    route.fulfill({
+      status: 200,
+      headers: { "content-type": "application/json", "x-echoed": "yes" },
+      body: JSON.stringify({ got: "your post" }),
+    }),
+  );
+
+  const bodied = server.waitFor(
+    (m) => m.type === "network" && String(m.url).includes("/api/echo") && typeof m.responseBody === "string",
+  );
+  await page.evaluate(async () => {
+    const res = await fetch("/api/echo", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-test": "hi" },
+      body: JSON.stringify({ ping: "pong" }),
+    });
+    await res.text();
+  });
+  await bodied;
+
+  type CapturedRequest = {
+    method: string;
+    url: string;
+    requestBody?: string;
+    requestHeaders?: Record<string, string>;
+    responseBody?: string;
+    responseHeaders?: Record<string, string>;
+  };
+  const reqs = await server.command<CapturedRequest[]>("get_network_requests", { filter: "echo" });
+  const req = reqs.find((r) => r.url.includes("/api/echo"));
+  expect(req).toBeDefined();
+  expect(req!.method).toBe("POST");
+  expect(req!.requestBody).toBe(JSON.stringify({ ping: "pong" }));
+  expect(req!.requestHeaders?.["x-test"]).toBe("hi");
+  expect(req!.responseBody).toContain("got");
+  expect(req!.responseHeaders?.["x-echoed"]).toBe("yes");
+});
+
+test("response body is truncated when it exceeds the cap", async ({ page }) => {
+  const huge = "x".repeat(20_000);
+  await page.route("**/api/big", (route) =>
+    route.fulfill({ status: 200, contentType: "text/plain", body: huge }),
+  );
+
+  const bodied = server.waitFor(
+    (m) => m.type === "network" && String(m.url).includes("/api/big") && typeof m.responseBody === "string",
+    7000,
+  );
+  await page.evaluate(() => fetch("/api/big").then((r) => r.text()));
+  const msg = await bodied;
+
+  const body = String(msg.responseBody);
+  expect(body).toContain("truncated");
+  expect(body.length).toBeLessThan(11_000); // 10 KB cap + small truncation marker
+});

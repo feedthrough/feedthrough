@@ -204,7 +204,7 @@ Then ask your AI agent:
 | `inspect_element(selector)` | Tag, classes, attributes, bounding rect, computed styles |
 | `query_dom(selector)` | All elements matching a CSS selector |
 | `get_console_logs(limit?)` | Captured console output since the bridge connected |
-| `get_network_requests(filter?)` | Captured fetch + XHR requests, with status codes |
+| `get_network_requests(filter?)` | Captured fetch + XHR requests — URL, method, status, duration, headers, and request/response bodies (capped at 10 KB) |
 | `connection_status()` | List connected tabs and which one is currently active |
 
 ---
@@ -277,7 +277,14 @@ v1 is local-only. Two guards enforce this:
 - **Origin validation** — each incoming WebSocket connection is checked against its `Origin` header.
   Connections from any origin other than `localhost` or `127.0.0.1` are rejected.
 
-Do not inject `@feedthrough/core` into production builds.
+### What gets captured
+
+Captured network requests include request and response **bodies and headers**, including
+`Authorization`, `Cookie`, and any other headers your app sends. That's intentional — debugging
+auth and session flows needs them. But the data does leave the page over the local WebSocket,
+flows through the MCP server, and reaches whichever AI agent you've connected. If that agent is
+cloud-backed, sensitive values reach the provider. Run Feedthrough only on dev machines and dev
+data. Do not inject `@feedthrough/core` into production builds.
 
 ---
 

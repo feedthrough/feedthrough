@@ -81,8 +81,10 @@ export async function startServer(port = 8765): Promise<void> {
   server.registerTool("get_network_requests", {
     description:
       "Return all fetch and XHR requests captured since the bridge connected, including URL, method, " +
-      "HTTP status, and duration. Use this to find failed requests (4xx/5xx), wrong URLs, slow calls, " +
-      "or requests that should have fired but didn't.",
+      "HTTP status, duration, request and response headers, and request and response bodies " +
+      "(bodies capped at 10 KB each — anything longer is truncated with a marker; binary responses " +
+      "are summarised). Use this to find failed requests (4xx/5xx), wrong URLs, slow calls, or to " +
+      "inspect what the app actually sent or received. Use the filter argument to narrow results.",
     inputSchema: { filter: z.string().optional().describe("Filter by URL substring or HTTP method, e.g. 'api' or 'POST'") },
   }, ({ filter }) => run(bridge, "get_network_requests", filter !== undefined ? { filter } : {}));
 

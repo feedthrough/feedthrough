@@ -18,6 +18,10 @@ export interface NetworkMessage {
   status?: number;
   duration?: number;
   error?: string;
+  requestHeaders?: Record<string, string>;
+  requestBody?: string;
+  responseHeaders?: Record<string, string>;
+  responseBody?: string;
 }
 
 export interface ResultMessage {
