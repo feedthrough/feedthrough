@@ -25,6 +25,7 @@ export default defineNuxtModule<BridgeOptions>({
   defaults: {},
   setup(options, nuxt) {
     if (!nuxt.options.dev) return;
-    addVitePlugin(() => feedthrough(options));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    addVitePlugin(() => feedthrough(options) as any);
   },
 });

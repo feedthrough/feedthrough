@@ -124,7 +124,18 @@ only) — v1 is explicitly local-only.
 - ✅ Session 5 — React example app with deliberate bugs
 - ✅ Session 6 — validate console/network interception end-to-end
 - ✅ Session 7 — @feedthrough/vite adapter
-- ⬜ Session 8 — CI (GitHub Actions): build/typecheck job + Playwright integration tests (bridge protocol, console/network/DOM commands) + website build job
+- ✅ Session 7b — @feedthrough/webpack, @feedthrough/playwright, @feedthrough/nextjs,
+  @feedthrough/nuxt (+ example apps); multi-tab WebSocket; security section in README
+- ✅ Session 7c — @feedthrough/sveltekit, @feedthrough/remix (+ example apps); framework support
+  matrix in README; tested Remix/SvelteKit/Astro against vite adapter (all FAIL — need own adapters)
+- ⬜ Session 8 — CI (GitHub Actions): build/typecheck job + Playwright integration tests (bridge
+  protocol, console/network/DOM commands) + website build job
+
+## Do later
+
+- **Browser extension** — Chrome/Firefox extension that injects the bridge into any tab without
+  any build-tool setup. Natural next step after the per-framework adapters.
+- **Astro adapter** — only worth building if there is demand; Astro is mostly static/content sites.
 
 ## Strategy notes
 

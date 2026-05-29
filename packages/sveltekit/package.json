@@ -1,0 +1,28 @@
+{
+  "name": "@feedthrough/sveltekit",
+  "version": "0.0.1",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "prebuild": "node scripts/embed-bundle.mjs",
+    "build": "tsc",
+    "dev": "node scripts/embed-bundle.mjs && tsc --watch",
+    "typecheck": "node scripts/embed-bundle.mjs && tsc --noEmit"
+  },
+  "dependencies": {
+    "@feedthrough/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@sveltejs/kit": "^2.0.0",
+    "@types/node": "^22.15.21",
+    "typescript": "^5.8.3"
+  },
+  "peerDependencies": {
+    "@sveltejs/kit": ">=2.0"
+  }
+}

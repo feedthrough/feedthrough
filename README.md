@@ -57,8 +57,28 @@ via Puppeteer or CDP and only works in Chrome. Feedthrough is an **embedded agen
 | [`@feedthrough/core`](packages/core) | In-browser bridge — intercepts console, fetch, XHR; handles commands |
 | [`@feedthrough/mcp`](packages/mcp) | MCP server — bridges any MCP client to the browser via WebSocket |
 | [`@feedthrough/cypress`](packages/cypress) | Cypress adapter — auto-injects the bridge before each test page load |
-| [`@feedthrough/vite`](packages/vite) | Vite plugin — auto-injects the bridge in dev mode |
-| [`@feedthrough/webpack`](packages/webpack) | Webpack plugin *(coming soon)* |
+| [`@feedthrough/playwright`](packages/playwright) | Playwright adapter — injects the bridge via `page.addInitScript()` |
+| [`@feedthrough/vite`](packages/vite) | Vite plugin for apps with a static `index.html` |
+| [`@feedthrough/webpack`](packages/webpack) | Webpack plugin — adds bridge as a global entry point |
+| [`@feedthrough/nextjs`](packages/nextjs) | Next.js adapter — wraps `next.config.ts` with `withFeedthrough()` |
+| [`@feedthrough/nuxt`](packages/nuxt) | Nuxt 3 module |
+| [`@feedthrough/sveltekit`](packages/sveltekit) | SvelteKit adapter — injects via the `handle` hook |
+| [`@feedthrough/remix`](packages/remix) | Remix adapter — injects via a Vite dev server middleware |
+
+---
+
+## Framework support
+
+| Framework | Adapter | Notes |
+|---|---|---|
+| Vite + React / Vue / Solid / Preact | `@feedthrough/vite` | Static `index.html` — plugin uses `transformIndexHtml` |
+| Next.js | `@feedthrough/nextjs` | Wraps the webpack config; dev only |
+| Nuxt 3 | `@feedthrough/nuxt` | Registers as a Nuxt module; dev only |
+| SvelteKit | `@feedthrough/sveltekit` | `handle` hook with `transformPageChunk`; dev only |
+| Remix | `@feedthrough/remix` | Vite dev server middleware; dev only |
+| Webpack apps | `@feedthrough/webpack` | Global entry point; guards against production mode |
+| Cypress | `@feedthrough/cypress` | `window:before:load` hook |
+| Playwright | `@feedthrough/playwright` | `page.addInitScript()` |
 
 ---
 
@@ -88,7 +108,7 @@ stdio. Override the port with `FEEDTHROUGH_PORT=9000`.
 
 ### 3. Inject the bridge into your page
 
-**Vite plugin (recommended):**
+**Vite + React / Vue / Solid / Preact:**
 
 ```ts
 // vite.config.ts
@@ -96,13 +116,44 @@ import { feedthrough } from "@feedthrough/vite";
 export default defineConfig({ plugins: [feedthrough()] });
 ```
 
-**Or manually (any bundler, dev only):**
+**Next.js:**
 
 ```ts
-// main.ts
-if (import.meta.env.DEV) {
-  import("@feedthrough/core").then(({ init }) => init());
-}
+// next.config.ts
+import { withFeedthrough } from "@feedthrough/nextjs";
+export default withFeedthrough()({ /* your next config */ });
+```
+
+**Nuxt 3:**
+
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({ modules: ["@feedthrough/nuxt"] });
+```
+
+**SvelteKit:**
+
+```ts
+// src/hooks.server.ts
+import { feedthroughHandle } from "@feedthrough/sveltekit";
+import { sequence } from "@sveltejs/kit/hooks";
+export const handle = sequence(feedthroughHandle);
+```
+
+**Remix:**
+
+```ts
+// vite.config.ts
+import { feedthrough } from "@feedthrough/remix";
+export default defineConfig({ plugins: [remix(), feedthrough()] });
+```
+
+**Webpack:**
+
+```ts
+// webpack.config.mjs
+import { FeedthroughPlugin } from "@feedthrough/webpack";
+export default { plugins: [new FeedthroughPlugin()] };
 ```
 
 **Cypress:**
@@ -111,6 +162,22 @@ if (import.meta.env.DEV) {
 // cypress/support/e2e.ts
 import { setupFeedthrough } from "@feedthrough/cypress";
 setupFeedthrough();
+```
+
+**Playwright:**
+
+```ts
+// import test from the adapter instead of @playwright/test
+import { test, expect } from "@feedthrough/playwright";
+```
+
+**Or manually (any bundler):**
+
+```ts
+// main.ts
+if (import.meta.env.DEV) {
+  import("@feedthrough/core").then(({ init }) => init());
+}
 ```
 
 ### 4. Open your page and start asking
