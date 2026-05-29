@@ -72,9 +72,12 @@ export async function startServer(port = 8765): Promise<void> {
 
   server.registerTool("get_console_logs", {
     description:
-      "Return console output (log, warn, error, info, debug) captured since the bridge connected. " +
-      "Always check this early — app errors and debug output often identify the root cause immediately. " +
-      "Error entries include the full stack trace.",
+      "Return console output captured since the bridge connected. Covers every console method — " +
+      "log/warn/error/info/debug plus dir, table, assert, trace, count, countReset, time/timeEnd/" +
+      "timeLog, group/groupCollapsed/groupEnd, and clear. Each entry has a 'level' (the closest of " +
+      "the five standard levels); rich methods also carry a 'method' field, and console.trace() " +
+      "plus failing console.assert() entries include a 'stack'. Always check this early — app " +
+      "errors and debug output often identify the root cause immediately.",
     inputSchema: { limit: z.number().int().positive().optional().describe("Return only the N most-recent entries") },
   }, ({ limit }) => run(bridge, "get_console_logs", limit !== undefined ? { limit } : {}));
 

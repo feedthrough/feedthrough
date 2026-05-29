@@ -68,7 +68,9 @@ workspace dependency ordering.
 ### @feedthrough/core
 
 - `src/transport.ts` — WebSocket client with reconnect and outbound queue
-- `src/interceptors/console.ts` — patches all five console levels, keeps a log buffer
+- `src/interceptors/console.ts` — patches every console method (log/warn/error/info/debug plus
+  dir, table, assert, trace, count/countReset, time/timeEnd/timeLog, group/groupCollapsed/
+  groupEnd, clear); rich methods carry a `method` field, trace/assert add `stack`
 - `src/interceptors/network.ts` — wraps `window.fetch` and `XMLHttpRequest`
 - `src/commands.ts` — dispatches incoming commands: click, fill, hover, inspect, query_dom, etc.
 - `src/bridge.ts` — `FeedthroughBridge` class, wires everything together

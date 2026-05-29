@@ -6,7 +6,13 @@ export interface ConsoleMessage {
   type: "console";
   ts: number;
   level: LogLevel;
+  // Set for non-standard methods (dir, table, assert, trace, count, countReset,
+  // time, timeEnd, timeLog, group, groupCollapsed, groupEnd, clear). Absent for
+  // the five standard levels, where the method name is the same as `level`.
+  method?: string;
   args: unknown[];
+  // Populated by console.trace() and failing console.assert() calls.
+  stack?: string;
 }
 
 export interface NetworkMessage {

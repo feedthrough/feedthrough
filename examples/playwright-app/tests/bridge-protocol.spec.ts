@@ -219,3 +219,57 @@ test("response body is truncated when it exceeds the cap", async ({ page }) => {
   expect(body).toContain("truncated");
   expect(body.length).toBeLessThan(11_000); // 10 KB cap + small truncation marker
 });
+
+test("console.assert records on failure but stays silent on success", async ({ page }) => {
+  const asserted = server.waitFor((m) => m.type === "console" && m.method === "assert");
+  await page.evaluate(() => {
+    console.assert(true, "should NOT be recorded");
+    console.assert(false, "should be recorded");
+  });
+  const msg = await asserted;
+  expect(msg.level).toBe("error");
+  expect(JSON.stringify(msg.args)).toContain("should be recorded");
+  expect(typeof msg.stack).toBe("string");
+  expect(String(msg.stack).length).toBeGreaterThan(0);
+
+  // Verify the truthy assertion was NOT captured.
+  const logs = await server.command<Array<{ method?: string; args: unknown[] }>>("get_console_logs");
+  const asserts = logs.filter((l) => l.method === "assert");
+  expect(asserts).toHaveLength(1);
+  expect(JSON.stringify(asserts[0].args)).not.toContain("NOT be recorded");
+});
+
+test("console.count maintains state across calls", async ({ page }) => {
+  await page.evaluate(() => {
+    console.count("widgets");
+    console.count("widgets");
+    console.count("widgets");
+  });
+  const logs = await server.command<Array<{ method?: string; args: unknown[] }>>("get_console_logs");
+  const counts = logs.filter((l) => l.method === "count");
+  expect(counts).toHaveLength(3);
+  expect(counts[0].args[0]).toBe("widgets: 1");
+  expect(counts[1].args[0]).toBe("widgets: 2");
+  expect(counts[2].args[0]).toBe("widgets: 3");
+});
+
+test("console.time/timeEnd reports an elapsed duration", async ({ page }) => {
+  const timed = server.waitFor((m) => m.type === "console" && m.method === "timeEnd");
+  await page.evaluate(async () => {
+    console.time("op");
+    await new Promise((r) => setTimeout(r, 25));
+    console.timeEnd("op");
+  });
+  const msg = await timed;
+  const args = msg.args as unknown[];
+  expect(String(args[0])).toMatch(/^op: \d+(\.\d+)?ms$/);
+});
+
+test("console.trace captures the call-site stack", async ({ page }) => {
+  const traced = server.waitFor((m) => m.type === "console" && m.method === "trace");
+  await page.evaluate(() => { console.trace("from the test"); });
+  const msg = await traced;
+  expect(JSON.stringify(msg.args)).toContain("from the test");
+  expect(typeof msg.stack).toBe("string");
+  expect(String(msg.stack).length).toBeGreaterThan(0);
+});

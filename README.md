@@ -203,7 +203,7 @@ Then ask your AI agent:
 | `hover(selector)` | Trigger mouseover/mouseenter |
 | `inspect_element(selector)` | Tag, classes, attributes, bounding rect, computed styles |
 | `query_dom(selector)` | All elements matching a CSS selector |
-| `get_console_logs(limit?)` | Captured console output since the bridge connected |
+| `get_console_logs(limit?)` | Captured console output (all methods — log/warn/error/info/debug plus dir/table/assert/trace/count/time/group/clear) since the bridge connected |
 | `get_network_requests(filter?)` | Captured fetch + XHR requests — URL, method, status, duration, headers, and request/response bodies (capped at 10 KB) |
 | `connection_status()` | List connected tabs and which one is currently active |
 

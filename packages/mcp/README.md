@@ -42,7 +42,7 @@ Add to `.claude/settings.json` or `~/.claude.json`:
 | `hover` | `selector: string` | Fire mouseover/mouseenter |
 | `inspect_element` | `selector: string` | Full element details — tag, classes, attributes, rect, styles |
 | `query_dom` | `selector: string` | All matching elements, summarised |
-| `get_console_logs` | `limit?: number` | Console output captured since bridge connected |
+| `get_console_logs` | `limit?: number` | Console output across every method (log/warn/error/info/debug plus dir/table/assert/trace/count/time/group/clear) since bridge connected |
 | `get_network_requests` | `filter?: string` | Fetch + XHR requests with headers and request/response bodies (10 KB cap); filter by URL substring or method |
 | `connection_status` | — | Whether a browser is currently connected |
 

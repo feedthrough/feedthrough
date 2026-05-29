@@ -1,36 +1,155 @@
 import type { Transport } from "../transport";
 import type { ConsoleMessage, LogLevel } from "../types";
 
-const LEVELS: LogLevel[] = ["log", "warn", "error", "info", "debug"];
+const STD_LEVELS: LogLevel[] = ["log", "warn", "error", "info", "debug"];
 const MAX_LOGS = 1000;
 
+type AnyFn = (...args: any[]) => any;
+
 export class ConsoleInterceptor {
-  private originals = {} as Record<LogLevel, typeof console.log>;
+  private originals = new Map<string, AnyFn>();
   private logs: ConsoleMessage[] = [];
+  private counts = new Map<string, number>();
+  private timers = new Map<string, number>();
 
   install(transport: Transport): void {
-    for (const level of LEVELS) {
-      const original = console[level].bind(console);
-      this.originals[level] = original;
-      console[level] = (...args: unknown[]) => {
-        original(...args);
-        const msg: ConsoleMessage = { type: "console", ts: Date.now(), level, args: args.map(serialize) };
-        this.logs.push(msg);
-        if (this.logs.length > MAX_LOGS) this.logs.shift();
-        transport.send(msg);
+    const c = console as unknown as Record<string, AnyFn>;
+
+    const record = (msg: ConsoleMessage): void => {
+      this.logs.push(msg);
+      if (this.logs.length > MAX_LOGS) this.logs.shift();
+      transport.send(msg);
+    };
+    const rich = (
+      method: string, level: LogLevel, args: unknown[], extras: Partial<ConsoleMessage> = {},
+    ): void => {
+      record({ type: "console", ts: Date.now(), level, method, args: args.map(serialize), ...extras });
+    };
+    const wrap = (name: string, fn: AnyFn): void => {
+      const orig = c[name];
+      if (typeof orig !== "function") return; // not available in this environment
+      this.originals.set(name, orig.bind(console));
+      c[name] = fn;
+    };
+
+    // log / warn / error / info / debug — the standard levels.
+    for (const level of STD_LEVELS) {
+      const orig = c[level].bind(console);
+      this.originals.set(level, orig);
+      c[level] = (...args: unknown[]) => {
+        orig(...args);
+        record({ type: "console", ts: Date.now(), level, args: args.map(serialize) });
       };
     }
+
+    // dir / table — formatted variants of log.
+    wrap("dir", (obj: unknown, options?: unknown) => {
+      this.originals.get("dir")!(obj, options);
+      rich("dir", "log", options === undefined ? [obj] : [obj, options]);
+    });
+    wrap("table", (data: unknown, columns?: unknown) => {
+      this.originals.get("table")!(data, columns);
+      rich("table", "log", columns === undefined ? [data] : [data, columns]);
+    });
+
+    // trace — captures the call-site stack.
+    wrap("trace", (...args: unknown[]) => {
+      this.originals.get("trace")!(...args);
+      rich("trace", "log", args, { stack: captureStack() });
+    });
+
+    // assert — fires only when the condition is falsy, like the browser.
+    wrap("assert", (condition?: unknown, ...args: unknown[]) => {
+      this.originals.get("assert")!(condition, ...args);
+      if (condition) return;
+      rich("assert", "error", args.length ? args : ["Assertion failed"], { stack: captureStack() });
+    });
+
+    // count / countReset — we maintain the counter so the recorded value
+    // mirrors what the browser prints.
+    wrap("count", (label?: unknown) => {
+      this.originals.get("count")!(label);
+      const key = label == null ? "default" : String(label);
+      const n = (this.counts.get(key) ?? 0) + 1;
+      this.counts.set(key, n);
+      rich("count", "log", [`${key}: ${n}`]);
+    });
+    wrap("countReset", (label?: unknown) => {
+      this.originals.get("countReset")!(label);
+      const key = label == null ? "default" : String(label);
+      this.counts.set(key, 0);
+      rich("countReset", "log", [`${key}: 0`]);
+    });
+
+    // time / timeEnd / timeLog — only timeEnd and timeLog produce output, same
+    // as the browser. time() silently starts a stopwatch.
+    wrap("time", (label?: unknown) => {
+      this.originals.get("time")!(label);
+      const key = label == null ? "default" : String(label);
+      this.timers.set(key, performance.now());
+    });
+    wrap("timeEnd", (label?: unknown) => {
+      this.originals.get("timeEnd")!(label);
+      const key = label == null ? "default" : String(label);
+      const start = this.timers.get(key);
+      if (start === undefined) {
+        rich("timeEnd", "warn", [`Timer "${key}" does not exist`]);
+        return;
+      }
+      this.timers.delete(key);
+      rich("timeEnd", "log", [`${key}: ${(performance.now() - start).toFixed(3)}ms`]);
+    });
+    wrap("timeLog", (label?: unknown, ...args: unknown[]) => {
+      this.originals.get("timeLog")!(label, ...args);
+      const key = label == null ? "default" : String(label);
+      const start = this.timers.get(key);
+      if (start === undefined) {
+        rich("timeLog", "warn", [`Timer "${key}" does not exist`, ...args]);
+        return;
+      }
+      rich("timeLog", "log", [`${key}: ${(performance.now() - start).toFixed(3)}ms`, ...args]);
+    });
+
+    // group / groupCollapsed / groupEnd / clear — recorded as markers. We do
+    // NOT flush the buffer on clear() so prior context remains available to
+    // the agent; the clear() call itself appears as an event in the stream.
+    wrap("group", (...args: unknown[]) => {
+      this.originals.get("group")!(...args);
+      rich("group", "log", args);
+    });
+    wrap("groupCollapsed", (...args: unknown[]) => {
+      this.originals.get("groupCollapsed")!(...args);
+      rich("groupCollapsed", "log", args);
+    });
+    wrap("groupEnd", () => {
+      this.originals.get("groupEnd")!();
+      rich("groupEnd", "log", []);
+    });
+    wrap("clear", () => {
+      this.originals.get("clear")!();
+      rich("clear", "log", []);
+    });
   }
 
   uninstall(): void {
-    for (const level of LEVELS) {
-      if (this.originals[level]) console[level] = this.originals[level];
+    const c = console as unknown as Record<string, AnyFn>;
+    for (const [name, original] of this.originals) {
+      c[name] = original;
     }
+    this.originals.clear();
   }
 
   getLogs(limit?: number): ConsoleMessage[] {
     return limit !== undefined ? this.logs.slice(-limit) : [...this.logs];
   }
+}
+
+function captureStack(): string {
+  // Drop "Error" line + the wrapper frame so the first line points at the
+  // user's call site.
+  const raw = new Error().stack ?? "";
+  const lines = raw.split("\n");
+  return lines.length > 2 ? lines.slice(2).join("\n") : raw;
 }
 
 function serialize(v: unknown): unknown {
