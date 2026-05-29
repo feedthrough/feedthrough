@@ -29,13 +29,67 @@
         <div class="body">
           <h3>Inject the bridge into your app</h3>
           <p>Dev only — zero cost in production.</p>
-          <pre><span class="cm">// vite.config.ts</span>
+
+          <div class="fw-tabs">
+            <button class="fw-tab active" data-fw="vite">Vite</button>
+            <button class="fw-tab" data-fw="nextjs">Next.js</button>
+            <button class="fw-tab" data-fw="nuxt">Nuxt</button>
+            <button class="fw-tab" data-fw="sveltekit">SvelteKit</button>
+            <button class="fw-tab" data-fw="remix">Remix</button>
+            <button class="fw-tab" data-fw="webpack">webpack</button>
+            <button class="fw-tab" data-fw="cypress">Cypress</button>
+            <button class="fw-tab" data-fw="playwright">Playwright</button>
+          </div>
+
+          <div class="fw-snippet" data-fw="vite">
+            <pre><span class="cm">// vite.config.ts</span>
 <span class="kw">import</span> {'{'} feedthrough {'}'} <span class="kw">from</span> <span class="str">"@feedthrough/vite"</span>;
 <span class="fn">defineConfig</span>({'{'} plugins: [<span class="fn">feedthrough</span>()] {'}'});</pre>
-          <p class="or">Or with Cypress:</p>
-          <pre><span class="cm">// cypress/support/e2e.ts</span>
+          </div>
+
+          <div class="fw-snippet hidden" data-fw="nextjs">
+            <pre><span class="cm">// next.config.ts</span>
+<span class="kw">import</span> {'{'} withFeedthrough {'}'} <span class="kw">from</span> <span class="str">"@feedthrough/nextjs"</span>;
+<span class="kw">export default</span> <span class="fn">withFeedthrough</span>()({'{'} <span class="cm">/* your next config */</span> {'}'});</pre>
+          </div>
+
+          <div class="fw-snippet hidden" data-fw="nuxt">
+            <pre><span class="cm">// nuxt.config.ts</span>
+<span class="kw">export default</span> <span class="fn">defineNuxtConfig</span>({'{'}
+  modules: [<span class="str">"@feedthrough/nuxt"</span>],
+{'}'});</pre>
+          </div>
+
+          <div class="fw-snippet hidden" data-fw="sveltekit">
+            <pre><span class="cm">// src/hooks.server.ts</span>
+<span class="kw">import</span> {'{'} feedthroughHandle {'}'} <span class="kw">from</span> <span class="str">"@feedthrough/sveltekit"</span>;
+<span class="kw">import</span> {'{'} sequence {'}'} <span class="kw">from</span> <span class="str">"@sveltejs/kit/hooks"</span>;
+<span class="kw">export const</span> handle = <span class="fn">sequence</span>(feedthroughHandle);</pre>
+          </div>
+
+          <div class="fw-snippet hidden" data-fw="remix">
+            <pre><span class="cm">// vite.config.ts</span>
+<span class="kw">import</span> {'{'} feedthrough {'}'} <span class="kw">from</span> <span class="str">"@feedthrough/remix"</span>;
+<span class="fn">defineConfig</span>({'{'} plugins: [<span class="fn">remix</span>(), <span class="fn">feedthrough</span>()] {'}'});</pre>
+          </div>
+
+          <div class="fw-snippet hidden" data-fw="webpack">
+            <pre><span class="cm">// webpack.config.mjs</span>
+<span class="kw">import</span> {'{'} FeedthroughPlugin {'}'} <span class="kw">from</span> <span class="str">"@feedthrough/webpack"</span>;
+<span class="kw">export default</span> {'{'} plugins: [<span class="kw">new</span> <span class="fn">FeedthroughPlugin</span>()] {'}'};</pre>
+          </div>
+
+          <div class="fw-snippet hidden" data-fw="cypress">
+            <pre><span class="cm">// cypress/support/e2e.ts</span>
 <span class="kw">import</span> {'{'} setupFeedthrough {'}'} <span class="kw">from</span> <span class="str">"@feedthrough/cypress"</span>;
 <span class="fn">setupFeedthrough</span>();</pre>
+          </div>
+
+          <div class="fw-snippet hidden" data-fw="playwright">
+            <pre><span class="cm">// Import test from the adapter instead of @playwright/test</span>
+<span class="kw">import</span> {'{'} test, expect {'}'} <span class="kw">from</span> <span class="str">"@feedthrough/playwright"</span>;</pre>
+          </div>
+
         </div>
       </div>
 
@@ -68,6 +122,18 @@
   </div>
 </section>
 
+<script>
+  const tabs = document.querySelectorAll<HTMLButtonElement>(".fw-tab");
+  const snippets = document.querySelectorAll<HTMLElement>(".fw-snippet");
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      const fw = tab.dataset.fw;
+      tabs.forEach(t => t.classList.toggle("active", t === tab));
+      snippets.forEach(s => s.classList.toggle("hidden", s.dataset.fw !== fw));
+    });
+  });
+</script>
+
 <style>
   .steps { display: flex; flex-direction: column; gap: 32px; }
   .step  { display: grid; grid-template-columns: 32px 1fr; gap: 20px; }
@@ -80,7 +146,24 @@
   }
   .body h3 { font-size: 0.9375rem; font-weight: 600; margin-bottom: 8px; }
   .body p  { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 12px; }
-  .or { margin-top: 12px; }
+
+  .fw-tabs {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;
+  }
+  .fw-tab {
+    padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 500;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text-muted); cursor: pointer; font-family: var(--font-mono);
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .fw-tab:hover { color: var(--text); border-color: var(--text-dim); }
+  .fw-tab.active {
+    color: var(--accent); border-color: rgba(34,211,238,0.4);
+    background: var(--accent-soft);
+  }
+
+  .fw-snippet.hidden { display: none; }
+
   .connected { color: var(--green); }
   .acc { color: var(--accent); }
 </style>
