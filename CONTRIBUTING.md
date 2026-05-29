@@ -25,6 +25,9 @@ See [CLAUDE.md](CLAUDE.md) for the full project layout, build quirks, and per-pa
 
 ## Pull requests
 
+For anything beyond a small bugfix or typo, please open an issue first to discuss the
+approach. This avoids wasted effort on PRs that go in a different direction than intended.
+
 - Keep changes focused — one thing per PR.
 - Run `pnpm build && pnpm typecheck` before opening a PR.
 - No need to update the changelog or bump versions; the maintainer handles that.
