@@ -41,6 +41,11 @@
             <button class="fw-tab" data-fw="playwright">Playwright</button>
           </div>
 
+          <p class="install-line">
+            Install: <code class="install-pkg"></code>
+            <a class="install-npm" href="https://www.npmjs.com/package/@feedthrough/vite" target="_blank" rel="noopener">npm ↗</a>
+          </p>
+
           <div class="fw-snippet" data-fw="vite">
             <pre><span class="cm">// vite.config.ts</span>
 <span class="kw">import</span> {'{'} feedthrough {'}'} <span class="kw">from</span> <span class="str">"@feedthrough/vite"</span>;
@@ -123,15 +128,31 @@
 </section>
 
 <script>
-  const tabs = document.querySelectorAll<HTMLButtonElement>(".fw-tab");
+  const PKG: Record<string, string> = {
+    vite:       "@feedthrough/vite",
+    nextjs:     "@feedthrough/nextjs",
+    nuxt:       "@feedthrough/nuxt",
+    sveltekit:  "@feedthrough/sveltekit",
+    remix:      "@feedthrough/remix",
+    webpack:    "@feedthrough/webpack",
+    cypress:    "@feedthrough/cypress",
+    playwright: "@feedthrough/playwright",
+  };
+
+  const tabs     = document.querySelectorAll<HTMLButtonElement>(".fw-tab");
   const snippets = document.querySelectorAll<HTMLElement>(".fw-snippet");
-  tabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-      const fw = tab.dataset.fw;
-      tabs.forEach(t => t.classList.toggle("active", t === tab));
-      snippets.forEach(s => s.classList.toggle("hidden", s.dataset.fw !== fw));
-    });
-  });
+  const pkgCode  = document.querySelector<HTMLElement>(".install-pkg");
+  const pkgLink  = document.querySelector<HTMLAnchorElement>(".install-npm");
+
+  function activate(fw: string) {
+    tabs.forEach(t => t.classList.toggle("active", t.dataset.fw === fw));
+    snippets.forEach(s => s.classList.toggle("hidden", s.dataset.fw !== fw));
+    if (pkgCode) pkgCode.textContent = `npm i -D ${PKG[fw]}`;
+    if (pkgLink) pkgLink.href = `https://www.npmjs.com/package/${PKG[fw]}`;
+  }
+
+  tabs.forEach(tab => tab.addEventListener("click", () => activate(tab.dataset.fw!)));
+  activate("vite");
 </script>
 
 <style>
@@ -163,6 +184,13 @@
   }
 
   .fw-snippet.hidden { display: none; }
+
+  .install-line {
+    font-size: 0.8125rem; color: var(--text-muted);
+    margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .install-line code { color: var(--text); }
+  .install-npm { font-size: 0.75rem; color: var(--accent); white-space: nowrap; }
 
   .connected { color: var(--green); }
   .acc { color: var(--accent); }
