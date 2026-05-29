@@ -17,6 +17,7 @@ export interface NetworkMessage {
   url: string;
   status?: number;
   duration?: number;
+  error?: string;
 }
 
 export interface ResultMessage {

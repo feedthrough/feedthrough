@@ -61,12 +61,19 @@ function clickEl(selector: string) {
 }
 
 function fillEl(selector: string, value: string) {
-  const el = getEl(selector) as HTMLInputElement;
+  const el = getEl(selector) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
   el.focus();
   // Use the native setter so React's synthetic event system sees the change
   // (React tracks the last value it set; a plain `el.value =` assignment may be
   // treated as "no change" and onChange won't fire for controlled inputs).
-  const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  // The setter is brand-checked to its interface, so it must come from the
+  // element's own prototype — using HTMLInputElement's setter on a <textarea>
+  // or <select> throws "Illegal invocation".
+  const proto =
+    el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype :
+    el instanceof HTMLSelectElement ? HTMLSelectElement.prototype :
+    HTMLInputElement.prototype;
+  const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
   if (nativeSetter) {
     nativeSetter.call(el, value);
   } else {

@@ -23,14 +23,26 @@ export class NetworkInterceptor {
       const startTs = Date.now();
 
       const pending: NetworkMessage = { type: "network", ts: startTs, requestId, method, url };
-      requests.push(pending);
+      pushRequest(requests, pending);
       transport.send(pending);
 
-      const res = await orig(input, init);
-      const done: NetworkMessage = { ...pending, ts: Date.now(), status: res.status, duration: Date.now() - startTs };
-      Object.assign(pending, done);
-      transport.send(done);
-      return res;
+      try {
+        const res = await orig(input, init);
+        const done: NetworkMessage = { ...pending, ts: Date.now(), status: res.status, duration: Date.now() - startTs };
+        Object.assign(pending, done);
+        transport.send(done);
+        return res;
+      } catch (e) {
+        // Network-level failure (DNS, connection refused, CORS, abort) — the
+        // fetch rejects rather than resolving, so record it before rethrowing.
+        const failed: NetworkMessage = {
+          ...pending, ts: Date.now(), duration: Date.now() - startTs,
+          error: e instanceof Error ? e.message : String(e),
+        };
+        Object.assign(pending, failed);
+        transport.send(failed);
+        throw e;
+      }
     };
   }
 
@@ -56,7 +68,7 @@ export class NetworkInterceptor {
         const requestId = uid();
         const startTs = Date.now();
         const pending: NetworkMessage = { type: "network", ts: startTs, requestId, method, url };
-        requests.push(pending);
+        pushRequest(requests, pending);
         transport.send(pending);
         xhr.addEventListener("loadend", () => {
           const done: NetworkMessage = { ...pending, ts: Date.now(), status: xhr.status, duration: Date.now() - startTs };
@@ -84,6 +96,13 @@ export class NetworkInterceptor {
     const lower = filter.toLowerCase();
     return all.filter(r => r.url.toLowerCase().includes(lower) || r.method.toLowerCase() === lower);
   }
+}
+
+const MAX_REQUESTS = 1000;
+
+function pushRequest(requests: NetworkMessage[], msg: NetworkMessage): void {
+  requests.push(msg);
+  if (requests.length > MAX_REQUESTS) requests.shift();
 }
 
 function resolveMethod(input: RequestInfo | URL, init?: RequestInit): string {

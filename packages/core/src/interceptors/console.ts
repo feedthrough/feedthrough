@@ -2,6 +2,7 @@ import type { Transport } from "../transport";
 import type { ConsoleMessage, LogLevel } from "../types";
 
 const LEVELS: LogLevel[] = ["log", "warn", "error", "info", "debug"];
+const MAX_LOGS = 1000;
 
 export class ConsoleInterceptor {
   private originals = {} as Record<LogLevel, typeof console.log>;
@@ -15,6 +16,7 @@ export class ConsoleInterceptor {
         original(...args);
         const msg: ConsoleMessage = { type: "console", ts: Date.now(), level, args: args.map(serialize) };
         this.logs.push(msg);
+        if (this.logs.length > MAX_LOGS) this.logs.shift();
         transport.send(msg);
       };
     }

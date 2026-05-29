@@ -3,6 +3,8 @@ import type { BrowserMessage } from "./types";
 export type OnMessageCallback = (data: unknown) => void;
 export type OnStatusCallback = (connected: boolean) => void;
 
+const MAX_QUEUE = 1000;
+
 export class Transport {
   private ws: WebSocket | null = null;
   private queue: string[] = [];
@@ -45,7 +47,10 @@ export class Transport {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(serialized);
     } else {
+      // Bound the queue so a page that runs with no server connected (a common
+      // state) doesn't leak memory; drop the oldest messages first.
       this.queue.push(serialized);
+      if (this.queue.length > MAX_QUEUE) this.queue.shift();
     }
   }
 

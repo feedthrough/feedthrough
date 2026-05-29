@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { startServer } from "./server.js";
 
 const port = parseInt(process.env["FEEDTHROUGH_PORT"] ?? "8765", 10);

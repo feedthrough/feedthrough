@@ -4,3 +4,5 @@ dist/
 *.tsbuildinfo
 .DS_Store
 website/.astro/
+test-results/
+playwright-report/

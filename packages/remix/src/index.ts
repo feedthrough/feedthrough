@@ -10,34 +10,61 @@ export function feedthrough(options: BridgeOptions = {}): Plugin {
     name: "feedthrough-remix",
     apply: "serve",
     configureServer(server) {
-      // Register before Vite/Remix internals so the res.end patch is in place
-      // when Remix renders HTML and calls res.end.
-      server.middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
-          const _write = res.write.bind(res);
-          const _end = res.end.bind(res);
-          const chunks: Buffer[] = [];
+      // Remix renders HTML at request time (no static index.html to transform),
+      // so we inject by patching the response stream. We touch *only* the first
+      // HTML chunk containing </head>: assets, JSON, and the streamed body after
+      // the <head> all pass straight through untouched, so Remix's streaming SSR
+      // is preserved and non-HTML responses are never buffered.
+      server.middlewares.use((_req: IncomingMessage, res: ServerResponse, next: () => void) => {
+        const origWrite = res.write.bind(res);
+        const origEnd = res.end.bind(res);
 
-          (res as any).write = (chunk: any, ...rest: any[]): boolean => {
-            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
+        let done = false; // injected, or decided not to — stop intercepting
+        let held = "";    // partial HTML buffered only while seeking </head>
+
+        const isHtml = () => String(res.getHeader("content-type") ?? "").includes("text/html");
+
+        // Returns true if the chunk was consumed here (written or held);
+        // false means the caller should write it through normally.
+        const intercept = (chunk: unknown): boolean => {
+          if (done) return false;
+          if (!isHtml()) { done = true; return false; }
+          const text = held + toStr(chunk);
+          const idx = text.indexOf("</head>");
+          if (idx === -1) { held = text; return true; } // keep seeking
+          done = true;
+          held = "";
+          res.removeHeader("content-length"); // injected script changes the length
+          origWrite(text.slice(0, idx) + script + text.slice(idx));
+          return true;
+        };
+
+        res.write = function (chunk: unknown, ...rest: unknown[]): boolean {
+          if (chunk != null && intercept(chunk)) {
+            const cb = rest.find((a) => typeof a === "function") as (() => void) | undefined;
+            cb?.();
             return true;
-          };
+          }
+          return (origWrite as (...a: unknown[]) => boolean)(chunk, ...rest);
+        } as typeof res.write;
 
-          (res as any).end = (chunk?: any, ...rest: any[]): ServerResponse => {
-            if (chunk != null && chunk !== "") {
-              chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
-            }
-            const ct = String(res.getHeader("content-type") ?? "");
-            const combined = Buffer.concat(chunks);
-            if (ct.includes("text/html")) {
-              const injected = combined.toString("utf-8").replace("</head>", `${script}</head>`);
-              res.removeHeader("content-length");
-              return _end(injected);
-            }
-            return _end(combined);
-          };
+        res.end = function (chunk?: unknown, ...rest: unknown[]): ServerResponse {
+          if (chunk != null && chunk !== "" && typeof chunk !== "function" && !intercept(chunk)) {
+            origWrite(chunk as string | Buffer);
+          }
+          if (held) { origWrite(held); held = ""; } // never saw </head>; flush as-is
+          return (origEnd as (...a: unknown[]) => ServerResponse)(
+            typeof chunk === "function" ? chunk : undefined,
+            ...rest,
+          );
+        } as typeof res.end;
 
-          next();
-        });
+        next();
+      });
     },
   };
+}
+
+function toStr(chunk: unknown): string {
+  return Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk);
 }
