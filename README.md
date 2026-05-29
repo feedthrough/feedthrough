@@ -6,9 +6,6 @@ Feedthrough injects a lightweight debug bridge into any running web page, then e
 — DOM state, console logs, network requests, and user interactions — as MCP tools. Any
 MCP-compatible AI agent can inspect and drive the page conversationally, in real time.
 
-Built by the author of [CamillaDSP](https://github.com/HEnquist/camilladsp) and the
-[rubato](https://github.com/HEnquist/rubato) resampler (~20M downloads on crates.io).
-
 ```
 Browser (any)
  └── @feedthrough/core          ← injected into your page
