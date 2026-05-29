@@ -20,27 +20,39 @@
         </p>
       </div>
       <div class="diagram">
-        <div>╔══════════════════════════╗</div>
-        <div>║  <span class="hi">Vacuum Chamber</span>          ║</div>
-        <div>║                          ║</div>
-        <div>║  <span class="acc">experiment running</span>      ║</div>
-        <div>║  <span class="acc">signals generated</span>       ║</div>
-        <div>║           │              ║</div>
-        <div>╚═══════════╪══════════════╝</div>
-        <div>            │ <span class="grn">feedthrough</span></div>
-        <div>            ▼</div>
-        <div>  <span class="hi">instruments outside</span></div>
-        <br/>
-        <div>╔══════════════════════════╗</div>
-        <div>║  <span class="hi">Your Web App</span>             ║</div>
-        <div>║                          ║</div>
-        <div>║  <span class="acc">React state changing</span>    ║</div>
-        <div>║  <span class="acc">fetches firing</span>          ║</div>
-        <div>║           │              ║</div>
-        <div>╚═══════════╪══════════════╝</div>
-        <div>            │ <span class="grn">@feedthrough/core</span></div>
-        <div>            ▼</div>
-        <div>  <span class="hi">your AI agent</span></div>
+        <div class="layer">
+          <div class="card">
+            <div class="card-title">Vacuum Chamber</div>
+            <ul class="card-items">
+              <li>experiment running</li>
+              <li>signals generated</li>
+            </ul>
+          </div>
+          <div class="conn">
+            <span class="line"></span>
+            <span class="conn-label">feedthrough</span>
+            <span class="line"></span>
+            <span class="head"></span>
+          </div>
+          <div class="endpoint">instruments outside</div>
+        </div>
+
+        <div class="layer">
+          <div class="card">
+            <div class="card-title">Your Web App</div>
+            <ul class="card-items">
+              <li>React state changing</li>
+              <li>fetches firing</li>
+            </ul>
+          </div>
+          <div class="conn">
+            <span class="line"></span>
+            <span class="conn-label">@feedthrough/core</span>
+            <span class="line"></span>
+            <span class="head"></span>
+          </div>
+          <div class="endpoint">your AI agent</div>
+        </div>
       </div>
     </div>
   </div>
@@ -57,10 +69,41 @@
 
   .diagram {
     background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
-    padding: 28px 24px; font-family: var(--font-mono); font-size: 0.75rem;
-    color: var(--text-muted); line-height: 1.8;
+    padding: 32px 24px;
+    display: flex; flex-direction: column; align-items: center; gap: 28px;
   }
-  .hi  { color: var(--text); }
-  .acc { color: var(--accent); }
-  .grn { color: var(--green); }
+  .layer { display: flex; flex-direction: column; align-items: center; width: 100%; }
+
+  .card {
+    background: var(--bg-code); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px;
+    width: 100%; max-width: 260px; text-align: center;
+  }
+  .card-title {
+    font-size: 0.875rem; color: var(--text); font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .card-items { list-style: none; padding: 0; margin: 0; }
+  .card-items li {
+    font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent);
+    line-height: 1.7;
+  }
+
+  .conn { display: flex; flex-direction: column; align-items: center; margin: 4px 0 0; }
+  .line { width: 1px; height: 14px; background: var(--text-dim); }
+  .conn-label {
+    font-family: var(--font-mono); font-size: 0.72rem; color: var(--green);
+    padding: 4px 0;
+  }
+  .head {
+    width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid var(--text-dim);
+    margin-top: -1px;
+  }
+
+  .endpoint {
+    font-size: 0.875rem; color: var(--text); font-weight: 500;
+    margin-top: 6px;
+  }
 </style>
