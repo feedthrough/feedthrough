@@ -8,6 +8,8 @@
   "engines": {
     "node": ">=22"
   },
+  "files": ["dist", "README.md"],
+  "publishConfig": { "access": "public" },
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit"
