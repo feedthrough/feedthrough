@@ -4,7 +4,8 @@
 
 A browser debug bridge exposed as an MCP server. `@feedthrough/core` injects into any web page
 and intercepts console output, fetch, and XHR. `@feedthrough/mcp` runs locally and exposes
-everything as MCP tools over stdio so Claude Code can inspect and drive the page in real time.
+everything as MCP tools over stdio so any MCP-compatible AI agent (Claude Code, Cursor, etc.)
+can inspect and drive the page in real time.
 
 The key differentiator: embedded inside the page (not an external Puppeteer/CDP observer), so
 it works in any browser and has access to framework internals.

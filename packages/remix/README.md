@@ -45,7 +45,7 @@ npx vite dev
 npx @feedthrough/mcp
 ```
 
-Then connect Claude Code (or any MCP client) to the server.
+Then connect your AI agent (Claude Code, Cursor, or any other MCP client) to the server.
 
 ## How it works
 

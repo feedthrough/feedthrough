@@ -44,8 +44,8 @@ npx vite dev
 npx @feedthrough/mcp
 ```
 
-Then connect Claude Code (or any MCP client) to the server and use `connection_status`,
-`get_console_logs`, `query_dom`, etc.
+Then connect your AI agent (Claude Code, Cursor, or any other MCP client) to the server and
+use `connection_status`, `get_console_logs`, `query_dom`, etc.
 
 ## How it works
 

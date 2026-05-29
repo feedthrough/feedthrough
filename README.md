@@ -238,9 +238,10 @@ UI but findable in under a minute via `get_console_logs`, `get_network_requests`
 5. `inspect_element(selector)` — deep-dive on a specific element
 6. `click()` / `fill()` — interact, then re-check logs and network
 
-### Claude Code — CLAUDE.md snippet
+### Project-memory snippet
 
-Add this to your project's `CLAUDE.md` to prime Claude with the right workflow:
+Add this to whatever project-memory file your AI agent reads — `CLAUDE.md` for Claude Code,
+`.cursor/rules/*.md` for Cursor, and so on — to prime it with the right workflow:
 
 ```markdown
 ## Debugging with Feedthrough
