@@ -1,4 +1,3 @@
-import type { Transport } from "../transport";
 import type { ConsoleMessage, LogLevel } from "../types";
 
 export interface GetLogsOptions {
@@ -9,6 +8,7 @@ export interface GetLogsOptions {
 
 const STD_LEVELS: LogLevel[] = ["log", "warn", "error", "info", "debug"];
 const MAX_LOGS = 1000;
+const MAX_ARG_CHARS = 10_000;
 
 type AnyFn = (...args: any[]) => any;
 
@@ -18,13 +18,15 @@ export class ConsoleInterceptor {
   private counts = new Map<string, number>();
   private timers = new Map<string, number>();
 
-  install(transport: Transport): void {
+  install(): void {
     const c = console as unknown as Record<string, AnyFn>;
 
+    // Captured into a local buffer only — never streamed. An agent pulls logs
+    // on demand via get_console_logs; pushing every entry over the WebSocket
+    // would be wasted traffic since nothing subscribes to it.
     const record = (msg: ConsoleMessage): void => {
       this.logs.push(msg);
       if (this.logs.length > MAX_LOGS) this.logs.shift();
-      transport.send(msg);
     };
     const rich = (
       method: string, level: LogLevel, args: unknown[], extras: Partial<ConsoleMessage> = {},
@@ -175,7 +177,19 @@ function captureStack(): string {
 
 function serialize(v: unknown): unknown {
   if (v === null || v === undefined) return String(v);
+  if (typeof v === "string") return cap(v);
   if (typeof v !== "object") return v;
   if (v instanceof Error) return { name: v.name, message: v.message, stack: v.stack };
-  try { return JSON.parse(JSON.stringify(v)); } catch { return String(v); }
+  try {
+    const json = JSON.stringify(v);
+    // Cap large objects so one console.log(hugeObject) can't bloat the buffer.
+    // Past the cap we keep the truncated JSON text rather than the live object.
+    return json.length > MAX_ARG_CHARS ? cap(json) : JSON.parse(json);
+  } catch {
+    return String(v);
+  }
+}
+
+function cap(text: string): string {
+  return text.length > MAX_ARG_CHARS ? text.slice(0, MAX_ARG_CHARS) + "…[truncated]" : text;
 }

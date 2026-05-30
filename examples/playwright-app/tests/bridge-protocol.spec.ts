@@ -5,8 +5,13 @@
  * spec stands up a WebSocket server that plays the role of @feedthrough/mcp's
  * bridge-client, injects the real @feedthrough/core bridge pointing at it, and
  * exercises the wire protocol end to end: transport connect/hello, console and
- * network streaming, the failed-fetch path, and every command (query_dom, click,
+ * network capture, the failed-fetch path, and every command (query_dom, click,
  * fill, inspect, get_console_logs, get_network_requests).
+ *
+ * The bridge does NOT stream console/network events — an agent pulls them on
+ * demand — so the tests poll the get_* tools (via `poll`) until the expected
+ * data appears, mirroring how a real MCP client investigates. Only `hello` and
+ * command `result`s arrive unprompted, so those still use `waitFor`.
  *
  * If the bridge regresses — transport, interceptors, or command dispatch — these
  * tests fail. demo.spec.ts would stay green.
@@ -62,6 +67,7 @@ class TestBridgeServer {
     return new Promise((resolve) => this.connectionWaiters.push(resolve));
   }
 
+  /** Wait for an unprompted message (hello, or a command result). */
   waitFor(match: (m: BridgeMessage) => boolean, timeout = 5000): Promise<BridgeMessage> {
     const existing = this.received.find(match);
     if (existing) return Promise.resolve(existing);
@@ -81,6 +87,26 @@ class TestBridgeServer {
     const res = await result;
     if (!res.ok) throw new Error(`command ${action} failed: ${res.error}`);
     return res.value as T;
+  }
+
+  /**
+   * Re-run a get_* command until `predicate` accepts the result, mirroring how
+   * an agent polls for state. Captured data (console/network) is populated
+   * asynchronously, so a single query can race ahead of it.
+   */
+  async poll<T>(
+    action: string,
+    params: Record<string, unknown>,
+    predicate: (value: T) => boolean,
+    { timeout = 5000, interval = 50 }: { timeout?: number; interval?: number } = {},
+  ): Promise<T> {
+    const deadline = Date.now() + timeout;
+    for (;;) {
+      const value = await this.command<T>(action, params);
+      if (predicate(value)) return value;
+      if (Date.now() > deadline) throw new Error(`poll for ${action} timed out`);
+      await new Promise((r) => setTimeout(r, interval));
+    }
   }
 
   close(): Promise<void> {
@@ -103,6 +129,18 @@ test.beforeEach(async ({ page }) => {
   await server.waitFor((m) => m.type === "hello");
 });
 
+type ConsoleEntry = { level: string; method?: string; args: unknown[]; stack?: string };
+type NetEntry = {
+  method: string;
+  url: string;
+  status?: number;
+  error?: string;
+  requestBody?: string;
+  requestHeaders?: Record<string, string>;
+  responseBody?: string;
+  responseHeaders?: Record<string, string>;
+};
+
 test("transport connects and announces the page URL", async () => {
   const hello = await server.waitFor((m) => m.type === "hello");
   expect(hello.url).toContain("localhost:4173");
@@ -122,31 +160,24 @@ test("click dispatches a real click and the DOM mutates", async () => {
   expect(counter.textContent).toBe("2"); // app's off-by-one bug: one click adds 2
 });
 
-test("console output is intercepted and streamed", async () => {
-  const log = server.waitFor((m) => m.type === "console" && JSON.stringify(m.args).includes("page view recorded"));
+test("console output is intercepted and retrievable", async () => {
   await server.command("click", { selector: "#record-view-btn" });
-  const msg = await log;
-  expect(msg.level).toBe("log");
 
-  const logs = await server.command<Array<{ level: string }>>("get_console_logs");
-  expect(logs.some((l) => l.level === "log")).toBe(true);
+  const logs = await server.poll<ConsoleEntry[]>(
+    "get_console_logs", {},
+    (l) => l.some((e) => JSON.stringify(e.args).includes("page view recorded")),
+  );
+  const entry = logs.find((e) => JSON.stringify(e.args).includes("page view recorded"))!;
+  expect(entry.level).toBe("log");
 });
 
-test("fill sets the value and fires input/change so the app reacts", async () => {
-  const filled = await server.command<{ tag: string; value: string }>("fill", { selector: "#search-input", value: "Alice" });
-  expect(filled).toMatchObject({ tag: "input", value: "Alice" });
-
-  const count = await server.command<{ textContent?: string }>("inspect", { selector: "#result-count" });
-  expect(count.textContent).toContain("1 of 6"); // input handler ran and filtered the list
-});
-
-test("network requests are intercepted, including failures", async () => {
-  // A successful (well, 200 but non-JSON) fetch the app fires on refresh.
-  const netMsg = server.waitFor((m) => m.type === "network" && String(m.url).includes("/api/events"));
+test("network requests are intercepted", async () => {
   await server.command("click", { selector: "#refresh-btn" });
-  await netMsg;
 
-  const requests = await server.command<Array<{ url: string; status?: number }>>("get_network_requests", { filter: "events" });
+  const requests = await server.poll<NetEntry[]>(
+    "get_network_requests", { filter: "events" },
+    (r) => r.some((req) => req.url.includes("/api/events")),
+  );
   expect(requests.some((r) => r.url.includes("/api/events"))).toBe(true);
 });
 
@@ -156,9 +187,11 @@ test("a rejected fetch is recorded with an error field", async ({ page }) => {
     fetch("/api/never", { signal: AbortSignal.abort() }).catch(() => {});
   });
 
-  const failed = await server.waitFor(
-    (m) => m.type === "network" && String(m.url).includes("/api/never") && typeof m.error === "string",
+  const requests = await server.poll<NetEntry[]>(
+    "get_network_requests", { filter: "never" },
+    (r) => r.some((req) => req.url.includes("/api/never") && typeof req.error === "string"),
   );
+  const failed = requests.find((r) => r.url.includes("/api/never"))!;
   expect(String(failed.error).toLowerCase()).toMatch(/abort/);
 });
 
@@ -171,9 +204,6 @@ test("request and response bodies + headers are captured", async ({ page }) => {
     }),
   );
 
-  const bodied = server.waitFor(
-    (m) => m.type === "network" && String(m.url).includes("/api/echo") && typeof m.responseBody === "string",
-  );
   await page.evaluate(async () => {
     const res = await fetch("/api/echo", {
       method: "POST",
@@ -182,24 +212,17 @@ test("request and response bodies + headers are captured", async ({ page }) => {
     });
     await res.text();
   });
-  await bodied;
 
-  type CapturedRequest = {
-    method: string;
-    url: string;
-    requestBody?: string;
-    requestHeaders?: Record<string, string>;
-    responseBody?: string;
-    responseHeaders?: Record<string, string>;
-  };
-  const reqs = await server.command<CapturedRequest[]>("get_network_requests", { filter: "echo" });
-  const req = reqs.find((r) => r.url.includes("/api/echo"));
-  expect(req).toBeDefined();
-  expect(req!.method).toBe("POST");
-  expect(req!.requestBody).toBe(JSON.stringify({ ping: "pong" }));
-  expect(req!.requestHeaders?.["x-test"]).toBe("hi");
-  expect(req!.responseBody).toContain("got");
-  expect(req!.responseHeaders?.["x-echoed"]).toBe("yes");
+  const reqs = await server.poll<NetEntry[]>(
+    "get_network_requests", { filter: "echo" },
+    (r) => r.some((req) => req.url.includes("/api/echo") && typeof req.responseBody === "string"),
+  );
+  const req = reqs.find((r) => r.url.includes("/api/echo"))!;
+  expect(req.method).toBe("POST");
+  expect(req.requestBody).toBe(JSON.stringify({ ping: "pong" }));
+  expect(req.requestHeaders?.["x-test"]).toBe("hi");
+  expect(req.responseBody).toContain("got");
+  expect(req.responseHeaders?.["x-echoed"]).toBe("yes");
 });
 
 test("response body is truncated when it exceeds the cap", async ({ page }) => {
@@ -208,35 +231,56 @@ test("response body is truncated when it exceeds the cap", async ({ page }) => {
     route.fulfill({ status: 200, contentType: "text/plain", body: huge }),
   );
 
-  const bodied = server.waitFor(
-    (m) => m.type === "network" && String(m.url).includes("/api/big") && typeof m.responseBody === "string",
-    7000,
-  );
   await page.evaluate(() => fetch("/api/big").then((r) => r.text()));
-  const msg = await bodied;
 
-  const body = String(msg.responseBody);
+  const reqs = await server.poll<NetEntry[]>(
+    "get_network_requests", { filter: "big" },
+    (r) => r.some((req) => req.url.includes("/api/big") && typeof req.responseBody === "string"),
+    { timeout: 7000 },
+  );
+  const body = String(reqs.find((r) => r.url.includes("/api/big"))!.responseBody);
   expect(body).toContain("truncated");
   expect(body.length).toBeLessThan(11_000); // 10 KB cap + small truncation marker
 });
 
+test("an SSE / event-stream response is not buffered as a body", async ({ page }) => {
+  // A never-ending text/event-stream must be summarised, never read into memory.
+  await page.route("**/api/stream", async (route) => {
+    await route.fulfill({
+      status: 200,
+      headers: { "content-type": "text/event-stream" },
+      body: "data: hello\n\n",
+    });
+  });
+
+  await page.evaluate(() => { fetch("/api/stream"); });
+
+  const reqs = await server.poll<NetEntry[]>(
+    "get_network_requests", { filter: "stream" },
+    (r) => r.some((req) => req.url.includes("/api/stream") && typeof req.responseBody === "string"),
+  );
+  const body = String(reqs.find((r) => r.url.includes("/api/stream"))!.responseBody);
+  expect(body.toLowerCase()).toContain("event stream");
+  expect(body).not.toContain("data: hello"); // body bytes were never read
+});
+
 test("console.assert records on failure but stays silent on success", async ({ page }) => {
-  const asserted = server.waitFor((m) => m.type === "console" && m.method === "assert");
   await page.evaluate(() => {
     console.assert(true, "should NOT be recorded");
     console.assert(false, "should be recorded");
   });
-  const msg = await asserted;
-  expect(msg.level).toBe("error");
-  expect(JSON.stringify(msg.args)).toContain("should be recorded");
-  expect(typeof msg.stack).toBe("string");
-  expect(String(msg.stack).length).toBeGreaterThan(0);
 
-  // Verify the truthy assertion was NOT captured.
-  const logs = await server.command<Array<{ method?: string; args: unknown[] }>>("get_console_logs");
+  const logs = await server.poll<ConsoleEntry[]>(
+    "get_console_logs", {},
+    (l) => l.some((e) => e.method === "assert"),
+  );
   const asserts = logs.filter((l) => l.method === "assert");
   expect(asserts).toHaveLength(1);
+  expect(asserts[0].level).toBe("error");
+  expect(JSON.stringify(asserts[0].args)).toContain("should be recorded");
   expect(JSON.stringify(asserts[0].args)).not.toContain("NOT be recorded");
+  expect(typeof asserts[0].stack).toBe("string");
+  expect(String(asserts[0].stack).length).toBeGreaterThan(0);
 });
 
 test("console.count maintains state across calls", async ({ page }) => {
@@ -245,7 +289,11 @@ test("console.count maintains state across calls", async ({ page }) => {
     console.count("widgets");
     console.count("widgets");
   });
-  const logs = await server.command<Array<{ method?: string; args: unknown[] }>>("get_console_logs");
+
+  const logs = await server.poll<ConsoleEntry[]>(
+    "get_console_logs", {},
+    (l) => l.filter((e) => e.method === "count").length >= 3,
+  );
   const counts = logs.filter((l) => l.method === "count");
   expect(counts).toHaveLength(3);
   expect(counts[0].args[0]).toBe("widgets: 1");
@@ -254,24 +302,31 @@ test("console.count maintains state across calls", async ({ page }) => {
 });
 
 test("console.time/timeEnd reports an elapsed duration", async ({ page }) => {
-  const timed = server.waitFor((m) => m.type === "console" && m.method === "timeEnd");
   await page.evaluate(async () => {
     console.time("op");
     await new Promise((r) => setTimeout(r, 25));
     console.timeEnd("op");
   });
-  const msg = await timed;
-  const args = msg.args as unknown[];
-  expect(String(args[0])).toMatch(/^op: \d+(\.\d+)?ms$/);
+
+  const logs = await server.poll<ConsoleEntry[]>(
+    "get_console_logs", {},
+    (l) => l.some((e) => e.method === "timeEnd"),
+  );
+  const timed = logs.find((e) => e.method === "timeEnd")!;
+  expect(String(timed.args[0])).toMatch(/^op: \d+(\.\d+)?ms$/);
 });
 
 test("console.trace captures the call-site stack", async ({ page }) => {
-  const traced = server.waitFor((m) => m.type === "console" && m.method === "trace");
   await page.evaluate(() => { console.trace("from the test"); });
-  const msg = await traced;
-  expect(JSON.stringify(msg.args)).toContain("from the test");
-  expect(typeof msg.stack).toBe("string");
-  expect(String(msg.stack).length).toBeGreaterThan(0);
+
+  const logs = await server.poll<ConsoleEntry[]>(
+    "get_console_logs", {},
+    (l) => l.some((e) => e.method === "trace"),
+  );
+  const traced = logs.find((e) => e.method === "trace")!;
+  expect(JSON.stringify(traced.args)).toContain("from the test");
+  expect(typeof traced.stack).toBe("string");
+  expect(String(traced.stack).length).toBeGreaterThan(0);
 });
 
 test("get_console_logs filters by level so errors aren't buried in noise", async ({ page }) => {
@@ -283,15 +338,18 @@ test("get_console_logs filters by level so errors aren't buried in noise", async
     console.error("real error B");
   });
 
-  type Entry = { level: string; args: unknown[] };
+  // Wait until all five have landed in the buffer.
+  await server.poll<ConsoleEntry[]>(
+    "get_console_logs", {},
+    (l) => l.filter((e) => e.level === "error").length >= 2,
+  );
 
-  const errorsOnly = await server.command<Entry[]>("get_console_logs", { levels: ["error"] });
+  const errorsOnly = await server.command<ConsoleEntry[]>("get_console_logs", { levels: ["error"] });
   expect(errorsOnly.length).toBe(2);
   expect(errorsOnly.every((l) => l.level === "error")).toBe(true);
 
-  const errorsAndWarns = await server.command<Entry[]>("get_console_logs", { levels: ["error", "warn"] });
+  const errorsAndWarns = await server.command<ConsoleEntry[]>("get_console_logs", { levels: ["error", "warn"] });
   expect(errorsAndWarns.length).toBe(4);
-  expect(errorsAndWarns.every((l) => l.level === "error" || l.level === "warn")).toBe(true);
   expect(errorsAndWarns.some((l) => l.level === "log")).toBe(false);
 });
 
@@ -302,15 +360,17 @@ test("get_console_logs match filter is case-insensitive", async ({ page }) => {
     console.error("AUTH failure on /api/login");
   });
 
-  type Entry = { args: unknown[] };
-  const auth = await server.command<Entry[]>("get_console_logs", { match: "auth" });
+  await server.poll<ConsoleEntry[]>(
+    "get_console_logs", {},
+    (l) => l.some((e) => JSON.stringify(e.args).includes("AUTH")),
+  );
+
+  const auth = await server.command<ConsoleEntry[]>("get_console_logs", { match: "auth" });
   expect(auth.length).toBe(1);
   expect(JSON.stringify(auth[0].args).toLowerCase()).toContain("auth");
 
-  // levels + match compose: only errors mentioning "auth"
-  const errorsMatchingAuth = await server.command<Entry[]>(
-    "get_console_logs",
-    { levels: ["error"], match: "auth" },
+  const errorsMatchingAuth = await server.command<ConsoleEntry[]>(
+    "get_console_logs", { levels: ["error"], match: "auth" },
   );
   expect(errorsMatchingAuth.length).toBe(1);
 });

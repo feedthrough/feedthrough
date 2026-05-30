@@ -31,8 +31,8 @@ export class FeedthroughBridge {
   }
 
   connect(): void {
-    this.consoleInterceptor.install(this.transport);
-    this.networkInterceptor.install(this.transport);
+    this.consoleInterceptor.install();
+    this.networkInterceptor.install();
     this.transport.connect();
   }
 

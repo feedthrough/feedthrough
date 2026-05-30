@@ -1,20 +1,25 @@
-import type { Transport } from "../transport";
 import type { NetworkMessage } from "../types";
 
 const MAX_REQUESTS = 1000;
 const MAX_BODY_CHARS = 10_000;
+// Hard cap on bytes we'll pull off a response stream while capturing the body.
+// Bounds memory for large/streaming responses regardless of content-length.
+const MAX_BODY_BYTES = 64 * 1024;
 
 export class NetworkInterceptor {
   private requests: NetworkMessage[] = [];
   private origFetch: typeof window.fetch | null = null;
   private OrigXHR: typeof XMLHttpRequest | null = null;
 
-  install(transport: Transport): void {
-    this.interceptFetch(transport);
-    this.interceptXHR(transport);
+  // Captured into a local buffer only — never streamed. An agent pulls requests
+  // on demand via get_network_requests; pushing every request/response over the
+  // WebSocket would be wasted traffic since nothing subscribes to it.
+  install(): void {
+    this.interceptFetch();
+    this.interceptXHR();
   }
 
-  private interceptFetch(transport: Transport): void {
+  private interceptFetch(): void {
     this.origFetch = window.fetch.bind(window);
     const orig = this.origFetch;
     const requests = this.requests;
@@ -32,38 +37,32 @@ export class NetworkInterceptor {
         requestHeaders, requestBody,
       };
       pushRequest(requests, pending);
-      transport.send(pending);
 
       try {
         const res = await orig(input, init);
-        const responseHeaders = headersToObject(res.headers);
-        const done: NetworkMessage = {
-          ...pending, ts: Date.now(), status: res.status, duration: Date.now() - startTs,
-          responseHeaders,
-        };
-        Object.assign(pending, done);
-        transport.send(done);
+        Object.assign(pending, {
+          ts: Date.now(), status: res.status, duration: Date.now() - startTs,
+          responseHeaders: headersToObject(res.headers),
+        });
 
-        // Read the response body off a clone so the app keeps full access to
-        // res. Fire-and-forget — we don't want to delay the app's await chain
-        // waiting for body bytes we only need for debugging.
-        captureResponseBody(res.clone(), pending, transport);
+        // Read the body off a clone so the app keeps full access to res. Bounded
+        // and fire-and-forget: we never delay the app's await chain, and we cap
+        // the bytes we pull so a streaming or huge response can't grow unbounded.
+        captureResponseBody(res.clone(), pending);
         return res;
       } catch (e) {
         // Network-level failure (DNS, connection refused, CORS, abort) — the
         // fetch rejects rather than resolving, so record it before rethrowing.
-        const failed: NetworkMessage = {
-          ...pending, ts: Date.now(), duration: Date.now() - startTs,
+        Object.assign(pending, {
+          ts: Date.now(), duration: Date.now() - startTs,
           error: e instanceof Error ? e.message : String(e),
-        };
-        Object.assign(pending, failed);
-        transport.send(failed);
+        });
         throw e;
       }
     };
   }
 
-  private interceptXHR(transport: Transport): void {
+  private interceptXHR(): void {
     this.OrigXHR = window.XMLHttpRequest;
     const OrigXHR = this.OrigXHR;
     const requests = this.requests;
@@ -98,7 +97,6 @@ export class NetworkInterceptor {
           requestBody,
         };
         pushRequest(requests, pending);
-        transport.send(pending);
         xhr.addEventListener("loadend", () => {
           let responseBody: string | undefined;
           try {
@@ -108,13 +106,11 @@ export class NetworkInterceptor {
               responseBody = `[XHR responseType=${xhr.responseType}]`;
             }
           } catch { /* ignore — accessing responseText on non-text type throws */ }
-          const done: NetworkMessage = {
-            ...pending, ts: Date.now(), status: xhr.status, duration: Date.now() - startTs,
+          Object.assign(pending, {
+            ts: Date.now(), status: xhr.status, duration: Date.now() - startTs,
             responseBody,
             responseHeaders: parseRawHeaders(xhr.getAllResponseHeaders()),
-          };
-          Object.assign(pending, done);
-          transport.send(done);
+          });
         });
         origSend(body);
       };
@@ -209,26 +205,54 @@ function capText(text: string): string {
   return text.slice(0, MAX_BODY_CHARS) + `…[truncated, ${text.length - MAX_BODY_CHARS} more chars]`;
 }
 
-function captureResponseBody(res: Response, pending: NetworkMessage, transport: Transport): void {
-  const ct = res.headers.get("content-type") ?? "";
-  if (isLikelyBinary(ct)) {
+function captureResponseBody(res: Response, pending: NetworkMessage): void {
+  const ct = (res.headers.get("content-type") ?? "").toLowerCase();
+  if (isSkippable(ct)) {
     const len = res.headers.get("content-length");
-    pending.responseBody = `[binary, ${len ?? "?"} bytes, ${ct || "no content-type"}]`;
-    transport.send({ ...pending });
+    pending.responseBody = `[${describe(ct)}${len ? `, ${len} bytes` : ""}, ${ct || "no content-type"}]`;
     return;
   }
-  res.text().then(text => {
-    pending.responseBody = capText(text);
-    transport.send({ ...pending });
-  }).catch(() => { /* clone read can fail if the original is aborted */ });
+  readBounded(res).then(body => { pending.responseBody = body; }).catch(() => { /* aborted/locked */ });
 }
 
-function isLikelyBinary(contentType: string): boolean {
-  const ct = contentType.toLowerCase();
+async function readBounded(res: Response): Promise<string> {
+  // Pull at most MAX_BODY_BYTES off the stream, then cancel. This bounds memory
+  // and, crucially, releases the teed clone so an open stream (SSE-style) or a
+  // huge download can't make the browser buffer the whole thing on our behalf.
+  if (!res.body) return capText(await res.text());
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  let bytes = 0;
+  let truncated = false;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      text += decoder.decode(value, { stream: true });
+      if (bytes >= MAX_BODY_BYTES || text.length >= MAX_BODY_CHARS) { truncated = true; break; }
+    }
+  } finally {
+    reader.cancel().catch(() => { /* already closed */ });
+  }
+  if (!truncated) return capText(text);
+  return text.slice(0, MAX_BODY_CHARS) + "…[truncated]";
+}
+
+function isSkippable(ct: string): boolean {
   return /^(image|video|audio|font)\//.test(ct) ||
          ct.startsWith("application/octet-stream") ||
          ct.startsWith("application/pdf") ||
-         ct.startsWith("application/zip");
+         ct.startsWith("application/zip") ||
+         ct.startsWith("text/event-stream") ||      // SSE — never-ending stream
+         ct.startsWith("application/x-ndjson");      // streaming JSON lines
+}
+
+function describe(ct: string): string {
+  if (ct.startsWith("text/event-stream")) return "event stream";
+  if (ct.startsWith("application/x-ndjson")) return "ndjson stream";
+  return "binary";
 }
 
 let counter = 0;

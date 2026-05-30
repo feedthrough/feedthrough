@@ -138,6 +138,10 @@ export class BridgeClient {
   }
 
   private get activeConnection(): Connection | null {
+    // Most-recently-active open tab. The bridge only sends us `hello` (on connect/
+    // navigation) and command `result`s — it does not stream console/network
+    // events — so lastActivity tracks the tab we're actually interacting with
+    // rather than whichever tab happens to be the noisiest.
     let best: Connection | null = null;
     for (const conn of this.connections.values()) {
       if (conn.ws.readyState !== WebSocket.OPEN) continue;
