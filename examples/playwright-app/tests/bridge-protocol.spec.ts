@@ -488,19 +488,25 @@ test("get_console_logs match filter is case-insensitive", async ({ page }) => {
   expect(errorsMatchingAuth.length).toBe(1);
 });
 
-test("uncaught errors and unhandled rejections are captured", async ({ page }) => {
-  await page.evaluate(() => {
-    setTimeout(() => { throw new Error("boom uncaught"); }, 0);
-    Promise.reject(new Error("boom rejected"));
-  });
+test("uncaught errors are captured", async ({ page }) => {
+  await page.evaluate(() => { setTimeout(() => { throw new Error("boom uncaught"); }, 0); });
 
   const logs = await server.poll<ConsoleEntry[]>(
     "get_console_logs", { levels: ["error"] },
-    (l) => l.some((e) => e.method === "uncaught") && l.some((e) => e.method === "unhandledrejection"),
+    (l) => l.some((e) => e.method === "uncaught"),
   );
   const u = logs.find((e) => e.method === "uncaught")!;
   expect(JSON.stringify(u.args)).toContain("boom uncaught");
   expect(typeof u.stack).toBe("string");
+});
+
+test("unhandled promise rejections are captured", async ({ page }) => {
+  await page.evaluate(() => { Promise.reject(new Error("boom rejected")); });
+
+  const logs = await server.poll<ConsoleEntry[]>(
+    "get_console_logs", { levels: ["error"] },
+    (l) => l.some((e) => e.method === "unhandledrejection"),
+  );
   const r = logs.find((e) => e.method === "unhandledrejection")!;
   expect(JSON.stringify(r.args)).toContain("boom rejected");
 });

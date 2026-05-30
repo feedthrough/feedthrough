@@ -140,6 +140,28 @@ export class ConsoleInterceptor {
       this.originals.get("clear")!();
       rich("clear", "log", []);
     });
+
+    // Uncaught exceptions and unhandled promise rejections are logged by the
+    // browser directly, NOT through console.error, so the wrappers above miss
+    // them. Capture them explicitly — they're exactly what a debugging agent
+    // wants — as error-level entries with a distinguishing `method`.
+    this.onError = (e: ErrorEvent) => {
+      record({
+        type: "console", ts: Date.now(), level: "error", method: "uncaught",
+        args: [serialize(e.message || "Uncaught error")],
+        stack: e.error instanceof Error ? e.error.stack : undefined,
+      });
+    };
+    this.onRejection = (e: PromiseRejectionEvent) => {
+      const reason = e.reason;
+      record({
+        type: "console", ts: Date.now(), level: "error", method: "unhandledrejection",
+        args: [serialize(reason instanceof Error ? reason.message : reason)],
+        stack: reason instanceof Error ? reason.stack : undefined,
+      });
+    };
+    window.addEventListener("error", this.onError);
+    window.addEventListener("unhandledrejection", this.onRejection);
   }
 
   uninstall(): void {
