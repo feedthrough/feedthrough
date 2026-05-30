@@ -41,10 +41,13 @@ export const tools: Tool[] = [
   },
   {
     id: "inspect-element",
-    name: "inspect_element(selector)",
-    short: "Tag, classes, attributes, bounding rect, computed styles",
-    long: "Returns full details about a single element: tag, id, classes, all attributes, text content, bounding rect (position and size on screen), and key computed styles (display, visibility, color, background-color). Use this when you need to understand why an element looks wrong or isn't behaving as expected.",
-    inputs: [{ name: "selector", type: "string", desc: "CSS selector — should match exactly one element" }],
+    name: "inspect_element(selector, properties?)",
+    short: "Tag, attributes, bounding rect, computed styles, and live form state",
+    long: "Returns full details about a single element: tag, id, classes, all attributes, text content, bounding rect (top/right/bottom/left/width/height plus page scroll and an inViewport flag), a curated set of computed styles (layout, box model, typography, positioning, flex/grid), and live form state where applicable (an input's current value, checked, disabled, readOnly, etc.). Pass properties to additionally read any specific computed CSS properties by name — they come back under a requested object. Note: addEventListener-registered handlers can't be read from the page; only inline on* handler attributes appear (under attributes).",
+    inputs: [
+      { name: "selector", type: "string", desc: "CSS selector — should match exactly one element" },
+      { name: "properties", type: "string[] (optional)", desc: "Extra computed CSS properties to read by name, e.g. ['transform', 'z-index', 'margin-top']" },
+    ],
   },
   {
     id: "query-dom",

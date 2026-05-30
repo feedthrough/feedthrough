@@ -51,7 +51,7 @@ export type BrowserMessage = ConsoleMessage | NetworkMessage | ResultMessage | H
 export interface ClickCommand     { type: "command"; id: string; action: "click";    selector: string }
 export interface FillCommand      { type: "command"; id: string; action: "fill";     selector: string; value: string }
 export interface HoverCommand     { type: "command"; id: string; action: "hover";    selector: string }
-export interface InspectCommand   { type: "command"; id: string; action: "inspect";  selector: string }
+export interface InspectCommand   { type: "command"; id: string; action: "inspect";  selector: string; properties?: string[] }
 export interface QueryDomCommand  { type: "command"; id: string; action: "query_dom"; selector: string }
 export interface GetConsoleLogsCommand    { type: "command"; id: string; action: "get_console_logs";    limit?: number; levels?: LogLevel[]; match?: string }
 export interface GetNetworkRequestsCommand { type: "command"; id: string; action: "get_network_requests"; filter?: string }

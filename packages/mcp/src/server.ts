@@ -113,10 +113,22 @@ export async function startServer(port = 8765): Promise<void> {
   server.registerTool("inspect_element", {
     description:
       "Return full details about a single element: tag, id, classes, all attributes, text content, " +
-      "bounding rect (position and size on screen), and key computed styles (display, visibility, color). " +
-      "Use this when you need to understand why an element looks wrong or isn't behaving as expected.",
-    inputSchema: { selector: z.string().describe("CSS selector — should match exactly one element") },
-  }, ({ selector }) => run(bridge, "inspect", { selector }));
+      "bounding rect (top/right/bottom/left/width/height + page scroll and an inViewport flag), a " +
+      "curated set of computed styles (layout, box model, typography, positioning, flex/grid), and " +
+      "live form state where applicable (an input's current value, checked, disabled, etc.). " +
+      "Pass 'properties' to additionally read any specific computed CSS properties by name — they " +
+      "come back under 'requested'. Use this to understand why an element looks wrong or isn't " +
+      "behaving as expected. Note: addEventListener-registered event handlers cannot be read from " +
+      "the page; only inline on* handler attributes appear (in 'attributes').",
+    inputSchema: {
+      selector: z.string().describe("CSS selector — should match exactly one element"),
+      properties: z.array(z.string()).optional()
+        .describe("Extra computed CSS properties to read by name, e.g. ['transform', 'z-index', 'margin-top']"),
+    },
+  }, ({ selector, properties }) => run(bridge, "inspect", {
+    selector,
+    ...(properties !== undefined && { properties }),
+  }));
 
   server.registerTool("click", {
     description:

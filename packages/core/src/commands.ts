@@ -37,7 +37,7 @@ export class CommandHandler {
       case "click":               return clickEl(cmd.selector);
       case "fill":                return fillEl(cmd.selector, cmd.value);
       case "hover":               return hoverEl(cmd.selector);
-      case "inspect":             return inspectEl(cmd.selector);
+      case "inspect":             return inspectEl(cmd.selector, cmd.properties);
       case "query_dom":           return queryDom(cmd.selector);
       case "get_console_logs":    return this.console.getLogs({ limit: cmd.limit, levels: cmd.levels, match: cmd.match });
       case "get_network_requests": return this.network.getRequests(cmd.filter);
@@ -90,24 +90,98 @@ function hoverEl(selector: string) {
   return { tag: el.tagName.toLowerCase() };
 }
 
-function inspectEl(selector: string) {
+// A practical default set of computed styles covering layout, box model,
+// typography, positioning, and fl/grid — enough to diagnose most "why does this
+// look wrong" cases. Request anything beyond this via the `properties` arg.
+const DEFAULT_STYLE_PROPS = [
+  "display", "position", "visibility", "opacity", "z-index", "box-sizing",
+  "top", "right", "bottom", "left",
+  "width", "height", "margin", "padding", "border",
+  "color", "background-color",
+  "font-family", "font-size", "font-weight", "line-height", "text-align",
+  "overflow", "cursor", "pointer-events",
+  "flex", "flex-direction", "justify-content", "align-items", "gap",
+  "grid-template-columns", "transform",
+];
+
+function inspectEl(selector: string, properties?: string[]) {
   const el = getEl(selector);
   const rect = el.getBoundingClientRect();
-  const styles = window.getComputedStyle(el);
-  return {
+  const cs = window.getComputedStyle(el);
+
+  const result: Record<string, unknown> = {
     tag: el.tagName.toLowerCase(),
     id: el.id || null,
     classes: Array.from(el.classList),
     attributes: Object.fromEntries(Array.from(el.attributes).map(a => [a.name, a.value])),
     textContent: el.textContent?.trim().slice(0, 200),
-    rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
-    styles: {
-      display: styles.display,
-      visibility: styles.visibility,
-      color: styles.color,
-      backgroundColor: styles.backgroundColor,
+    rect: {
+      top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left,
+      width: rect.width, height: rect.height, x: rect.x, y: rect.y,
     },
+    scroll: { x: window.scrollX, y: window.scrollY },
+    inViewport:
+      rect.bottom > 0 && rect.right > 0 &&
+      rect.top < window.innerHeight && rect.left < window.innerWidth,
+    styles: pickStyles(cs, DEFAULT_STYLE_PROPS),
   };
+
+  const state = elementState(el);
+  if (state) result.state = state;
+
+  if (properties && properties.length > 0) {
+    const requested: Record<string, string> = {};
+    for (const p of properties) requested[p] = cs.getPropertyValue(p);
+    result.requested = requested;
+  }
+
+  return result;
+}
+
+function pickStyles(cs: CSSStyleDeclaration, props: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const p of props) {
+    const v = cs.getPropertyValue(p);
+    if (v) out[p] = v;
+  }
+  return out;
+}
+
+// Live form/control state that isn't visible in static attributes (e.g. an
+// input's current value after the user typed, or a checkbox's checked flag).
+function elementState(el: Element): Record<string, unknown> | undefined {
+  const s: Record<string, unknown> = {};
+  if (el instanceof HTMLInputElement) {
+    s.value = capValue(el.value);
+    s.type = el.type;
+    s.checked = el.checked;
+    s.disabled = el.disabled;
+    s.readOnly = el.readOnly;
+    s.required = el.required;
+    if (el.placeholder) s.placeholder = el.placeholder;
+    if (el.validationMessage) s.validationMessage = el.validationMessage;
+  } else if (el instanceof HTMLTextAreaElement) {
+    s.value = capValue(el.value);
+    s.disabled = el.disabled;
+    s.readOnly = el.readOnly;
+  } else if (el instanceof HTMLSelectElement) {
+    s.value = el.value;
+    s.selectedIndex = el.selectedIndex;
+    s.disabled = el.disabled;
+  } else if (el instanceof HTMLButtonElement) {
+    s.type = el.type;
+    s.disabled = el.disabled;
+  } else if (el instanceof HTMLAnchorElement) {
+    s.href = el.href;
+  }
+  if (el instanceof HTMLElement && Object.keys(el.dataset).length > 0) {
+    s.dataset = { ...el.dataset };
+  }
+  return Object.keys(s).length > 0 ? s : undefined;
+}
+
+function capValue(v: string): string {
+  return v.length > 1000 ? v.slice(0, 1000) + "…[truncated]" : v;
 }
 
 function queryDom(selector: string) {

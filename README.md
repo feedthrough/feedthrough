@@ -205,7 +205,7 @@ Then ask your AI agent:
 | `click(selector)` | Click an element |
 | `fill(selector, value)` | Type into an input field |
 | `hover(selector)` | Trigger mouseover/mouseenter |
-| `inspect_element(selector)` | Tag, classes, attributes, bounding rect, computed styles |
+| `inspect_element(selector, properties?)` | Tag, attributes, full bounding rect + inViewport, curated computed styles, live form state; `properties` reads extra CSS props by name |
 | `query_dom(selector)` | All elements matching a CSS selector |
 | `get_console_logs(limit?, levels?, match?)` | Captured console output (all methods); filter by `levels: ['error']` to skip noisy warn/info or by `match` substring |
 | `get_network_requests(filter?)` | Captured fetch + XHR requests — URL, method, status, duration, headers, and request/response bodies (capped at 10 KB) |

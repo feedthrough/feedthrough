@@ -160,6 +160,47 @@ test("click dispatches a real click and the DOM mutates", async () => {
   expect(counter.textContent).toBe("2"); // app's off-by-one bug: one click adds 2
 });
 
+test("fill sets the value and fires input/change so the app reacts", async () => {
+  const filled = await server.command<{ tag: string; value: string }>("fill", { selector: "#search-input", value: "Alice" });
+  expect(filled).toMatchObject({ tag: "input", value: "Alice" });
+
+  const count = await server.command<{ textContent?: string }>("inspect", { selector: "#result-count" });
+  expect(count.textContent).toContain("1 of 6"); // input handler ran and filtered the list
+});
+
+test("inspect_element returns styles, live form state, and requested props", async () => {
+  // Fill the input, then inspect it — live value must be visible in state.
+  await server.command("fill", { selector: "#search-input", value: "Bob" });
+
+  type Inspected = {
+    tag: string;
+    rect: { width: number; inViewport?: boolean };
+    inViewport: boolean;
+    styles: Record<string, string>;
+    state?: { value?: string; type?: string; disabled?: boolean };
+    requested?: Record<string, string>;
+  };
+
+  const info = await server.command<Inspected>("inspect", {
+    selector: "#search-input",
+    properties: ["box-sizing", "cursor"],
+  });
+
+  // Curated default styles are present.
+  expect(info.styles.display).toBeTruthy();
+  expect(typeof info.inViewport).toBe("boolean");
+  expect(info.rect.width).toBeGreaterThan(0);
+
+  // Live form state reflects what we just typed.
+  expect(info.state?.value).toBe("Bob");
+  expect(info.state?.type).toBe("text");
+  expect(info.state?.disabled).toBe(false);
+
+  // Requested props come back under `requested`.
+  expect(info.requested?.["box-sizing"]).toBe("border-box");
+  expect(typeof info.requested?.["cursor"]).toBe("string");
+});
+
 test("console output is intercepted and retrievable", async () => {
   await server.command("click", { selector: "#record-view-btn" });
 
