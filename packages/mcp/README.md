@@ -45,6 +45,14 @@ Add to `.claude/settings.json` or `~/.claude.json`:
 | `get_console_logs` | `limit?: number`, `levels?: string[]`, `match?: string` | Console output across every method; filter by `levels: ['error']` to skip noisy output or `match` for substring |
 | `get_network_requests` | `filter?: string` | Fetch + XHR requests with headers and request/response bodies (10 KB cap); filter by URL substring or method |
 | `connection_status` | — | Whether a browser is currently connected |
+| `set_style` | `selector: string`, `properties: Record<string,string>` | Preview a visual fix — set inline CSS live (not saved to source) |
+| `set_attribute` | `selector: string`, `name: string`, `value: string \| null` | Preview an attribute change (toggle disabled, swap class, aria-*); `null` removes |
+| `set_text` | `selector: string`, `text: string` | Preview wording/label changes — replace an element's text |
+| `reset_overrides` | — | Undo every live `set_style` / `set_attribute` / `set_text` change |
+
+`set_style` / `set_attribute` / `set_text` are **live previews**, not saved edits — they mutate the
+running DOM only and reset on reload. Framework-owned text/attributes may be overwritten on the next
+render; the tool result flags this.
 
 ## Architecture
 

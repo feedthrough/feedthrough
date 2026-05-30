@@ -41,6 +41,10 @@ export class CommandHandler {
       case "query_dom":           return queryDom(cmd.selector);
       case "get_console_logs":    return this.console.getLogs({ limit: cmd.limit, levels: cmd.levels, match: cmd.match });
       case "get_network_requests": return this.network.getRequests(cmd.filter);
+      case "set_style":           return setStyle(cmd.selector, cmd.properties);
+      case "set_attribute":       return setAttribute(cmd.selector, cmd.name, cmd.value);
+      case "set_text":            return setText(cmd.selector, cmd.text);
+      case "reset_overrides":     return resetOverrides();
     }
   }
 }
@@ -191,6 +195,87 @@ function queryDom(selector: string) {
     classes: Array.from(el.classList),
     textContent: el.textContent?.trim().slice(0, 100),
   }));
+}
+
+// ── Live edit (preview) ─────────────────────────────────────────────────────────
+//
+// These mutate the *running* DOM so an agent can preview a fix ("does this look
+// better?"). Nothing is written to source — changes vanish on reload/HMR — so
+// every result carries a note saying so, and changes a framework is likely to
+// overwrite carry an extra warning. Each edit pushes an undo closure so
+// reset_overrides() can roll everything back without a reload.
+
+const PREVIEW_NOTE =
+  "Live preview only — applied to the running DOM, not saved to source, and reset on reload/HMR. " +
+  "Once the user is happy, edit the actual source to make it permanent.";
+
+const CLOBBER_WARNING =
+  "This may be reverted on the next framework render (React/Vue/etc. re-render this element from " +
+  "component state). If it snaps back, change it in the source instead of here.";
+
+// Attributes frameworks commonly own and rewrite on render.
+const FRAMEWORK_OWNED_ATTRS = new Set(["class", "style", "value", "checked", "disabled", "selected"]);
+
+const overrides: Array<() => void> = [];
+
+function setStyle(selector: string, properties: Record<string, string>) {
+  const el = getEl(selector) as HTMLElement;
+  if (!el.style) throw new Error(`element "${selector}" has no style (not an HTMLElement)`);
+  const applied: Record<string, string> = {};
+  for (const [prop, value] of Object.entries(properties)) {
+    const prevValue = el.style.getPropertyValue(prop);
+    const prevPriority = el.style.getPropertyPriority(prop);
+    overrides.push(() => {
+      if (prevValue) el.style.setProperty(prop, prevValue, prevPriority);
+      else el.style.removeProperty(prop);
+    });
+    el.style.setProperty(prop, value);
+    applied[prop] = el.style.getPropertyValue(prop);
+  }
+  // Inline styles usually survive re-renders, so no clobber warning by default.
+  return { tag: el.tagName.toLowerCase(), applied, note: PREVIEW_NOTE };
+}
+
+function setAttribute(selector: string, name: string, value: string | null) {
+  const el = getEl(selector);
+  const had = el.hasAttribute(name);
+  const prev = had ? el.getAttribute(name) : null;
+  overrides.push(() => {
+    if (had) el.setAttribute(name, prev ?? "");
+    else el.removeAttribute(name);
+  });
+  if (value === null) el.removeAttribute(name);
+  else el.setAttribute(name, value);
+  const result: Record<string, unknown> = {
+    tag: el.tagName.toLowerCase(),
+    name,
+    value: value === null ? null : el.getAttribute(name),
+    removed: value === null,
+    note: PREVIEW_NOTE,
+  };
+  if (FRAMEWORK_OWNED_ATTRS.has(name.toLowerCase())) result.frameworkWarning = CLOBBER_WARNING;
+  return result;
+}
+
+function setText(selector: string, text: string) {
+  const el = getEl(selector);
+  const prev = el.textContent;
+  overrides.push(() => { el.textContent = prev; });
+  el.textContent = text;
+  // textContent is almost always framework-controlled, so always warn.
+  return {
+    tag: el.tagName.toLowerCase(),
+    text,
+    note: PREVIEW_NOTE,
+    frameworkWarning: CLOBBER_WARNING,
+  };
+}
+
+function resetOverrides() {
+  const count = overrides.length;
+  // Undo in reverse so repeated edits to the same property unwind to the original.
+  while (overrides.length) overrides.pop()!();
+  return { reverted: count, note: "All bridge-applied DOM changes since connect have been undone (best effort — elements re-created by the framework since may not roll back)." };
 }
 
 // ── Type guard ────────────────────────────────────────────────────────────────

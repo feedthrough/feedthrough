@@ -56,10 +56,17 @@ export interface QueryDomCommand  { type: "command"; id: string; action: "query_
 export interface GetConsoleLogsCommand    { type: "command"; id: string; action: "get_console_logs";    limit?: number; levels?: LogLevel[]; match?: string }
 export interface GetNetworkRequestsCommand { type: "command"; id: string; action: "get_network_requests"; filter?: string }
 
+// Live-edit (preview) commands — mutate the running DOM, never the source.
+export interface SetStyleCommand     { type: "command"; id: string; action: "set_style";     selector: string; properties: Record<string, string> }
+export interface SetAttributeCommand { type: "command"; id: string; action: "set_attribute"; selector: string; name: string; value: string | null }
+export interface SetTextCommand      { type: "command"; id: string; action: "set_text";      selector: string; text: string }
+export interface ResetOverridesCommand { type: "command"; id: string; action: "reset_overrides" }
+
 export type Command =
   | ClickCommand | FillCommand | HoverCommand | InspectCommand
   | QueryDomCommand
-  | GetConsoleLogsCommand | GetNetworkRequestsCommand;
+  | GetConsoleLogsCommand | GetNetworkRequestsCommand
+  | SetStyleCommand | SetAttributeCommand | SetTextCommand | ResetOverridesCommand;
 
 // ── Config ────────────────────────────────────────────────────────────────────
 

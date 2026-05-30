@@ -201,6 +201,78 @@ test("inspect_element returns styles, live form state, and requested props", asy
   expect(typeof info.requested?.["cursor"]).toBe("string");
 });
 
+test("set_style applies inline CSS live and returns a preview note", async () => {
+  const res = await server.command<{ applied: Record<string, string>; note: string }>(
+    "set_style",
+    { selector: "#record-view-btn", properties: { "font-size": "13px", "white-space": "nowrap" } },
+  );
+  expect(res.applied["font-size"]).toBe("13px");
+  expect(res.note.toLowerCase()).toContain("preview");
+
+  // Confirm it actually landed on the element.
+  const info = await server.command<{ requested?: Record<string, string> }>(
+    "inspect", { selector: "#record-view-btn", properties: ["font-size", "white-space"] },
+  );
+  expect(info.requested?.["font-size"]).toBe("13px");
+  expect(info.requested?.["white-space"]).toBe("nowrap");
+});
+
+test("set_attribute sets and removes, warning on framework-owned attrs", async () => {
+  // A framework-owned attribute carries a clobber warning.
+  const cls = await server.command<{ frameworkWarning?: string }>(
+    "set_attribute", { selector: "#record-view-btn", name: "class", value: "preview-cls" },
+  );
+  expect(cls.frameworkWarning).toBeTruthy();
+  let info = await server.command<{ classes: string[] }>("inspect", { selector: "#record-view-btn" });
+  expect(info.classes).toContain("preview-cls");
+
+  // A plain attribute does not warn; null removes it.
+  const data = await server.command<{ frameworkWarning?: string; value: unknown }>(
+    "set_attribute", { selector: "#record-view-btn", name: "data-preview", value: "1" },
+  );
+  expect(data.frameworkWarning).toBeUndefined();
+  info = await server.command<{ classes: string[] }>("inspect", { selector: "#record-view-btn" });
+
+  const removed = await server.command<{ removed: boolean }>(
+    "set_attribute", { selector: "#record-view-btn", name: "data-preview", value: null },
+  );
+  expect(removed.removed).toBe(true);
+  const after = await server.command<{ attributes: Record<string, string> }>(
+    "inspect", { selector: "#record-view-btn" },
+  );
+  expect(after.attributes["data-preview"]).toBeUndefined();
+});
+
+test("set_text replaces content and always warns about framework clobber", async () => {
+  const res = await server.command<{ text: string; frameworkWarning?: string }>(
+    "set_text", { selector: "#record-view-btn", text: "Tally a view" },
+  );
+  expect(res.frameworkWarning).toBeTruthy();
+  const info = await server.command<{ textContent?: string }>("inspect", { selector: "#record-view-btn" });
+  expect(info.textContent).toBe("Tally a view");
+});
+
+test("reset_overrides rolls back every live edit", async () => {
+  const before = await server.command<{ textContent?: string; attributes: Record<string, string>; styles: Record<string, string> }>(
+    "inspect", { selector: "#refresh-btn", properties: ["opacity"] },
+  );
+
+  await server.command("set_style", { selector: "#refresh-btn", properties: { opacity: "0.3" } });
+  await server.command("set_attribute", { selector: "#refresh-btn", name: "data-x", value: "y" });
+  await server.command("set_text", { selector: "#refresh-btn", text: "CHANGED" });
+
+  const reset = await server.command<{ reverted: number }>("reset_overrides");
+  expect(reset.reverted).toBeGreaterThanOrEqual(3);
+
+  const after = await server.command<{ textContent?: string; attributes: Record<string, string>; requested?: Record<string, string> }>(
+    "inspect", { selector: "#refresh-btn", properties: ["opacity"] },
+  );
+  expect(after.textContent).toBe(before.textContent);
+  expect(after.attributes["data-x"]).toBeUndefined();
+  // opacity inline override removed → back to the stylesheet/computed default
+  expect(after.requested?.["opacity"]).toBe("1");
+});
+
 test("console output is intercepted and retrievable", async () => {
   await server.command("click", { selector: "#record-view-btn" });
 

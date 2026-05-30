@@ -156,6 +156,54 @@ export async function startServer(port = 8765): Promise<void> {
     inputSchema: { selector: z.string().describe("CSS selector") },
   }, ({ selector }) => run(bridge, "hover", { selector }));
 
+  server.registerTool("set_style", {
+    description:
+      "Set one or more inline CSS properties on an element to PREVIEW a visual change live (e.g. " +
+      "shrink a label that doesn't fit, adjust padding or width). This edits the running DOM only " +
+      "— it is NOT saved to source and resets on reload — so tell the user it's a preview, and once " +
+      "they're happy, make the real change in the CSS/component source. Inline styles override the " +
+      "stylesheet and usually survive re-renders. The result includes a 'note' to relay; reset with " +
+      "reset_overrides.",
+    inputSchema: {
+      selector: z.string().describe("CSS selector — should match one element"),
+      properties: z.record(z.string(), z.string())
+        .describe("CSS property → value map, e.g. { 'font-size': '13px', 'white-space': 'nowrap' }"),
+    },
+  }, ({ selector, properties }) => run(bridge, "set_style", { selector, properties }));
+
+  server.registerTool("set_attribute", {
+    description:
+      "Set or remove an attribute on an element to preview a change (toggle disabled, swap a class, " +
+      "set an aria-* attribute). Pass value=null to remove the attribute. Live preview only — not " +
+      "saved to source, resets on reload. If the attribute is one a framework controls (class, " +
+      "value, checked, disabled, …) the result includes a 'frameworkWarning' that it may be " +
+      "reverted on the next render — relay it. Reset with reset_overrides.",
+    inputSchema: {
+      selector: z.string().describe("CSS selector — should match one element"),
+      name: z.string().describe("Attribute name"),
+      value: z.string().nullable().describe("New value, or null to remove the attribute"),
+    },
+  }, ({ selector, name, value }) => run(bridge, "set_attribute", { selector, name, value }));
+
+  server.registerTool("set_text", {
+    description:
+      "Replace an element's text content to preview wording/label changes. Live preview only — not " +
+      "saved to source, resets on reload. textContent is almost always framework-controlled, so the " +
+      "result includes a 'frameworkWarning' that React/Vue/etc. will likely overwrite it on the next " +
+      "render — relay that, and persist real changes in the source. Reset with reset_overrides.",
+    inputSchema: {
+      selector: z.string().describe("CSS selector — should match one element"),
+      text: z.string().describe("New text content"),
+    },
+  }, ({ selector, text }) => run(bridge, "set_text", { selector, text }));
+
+  server.registerTool("reset_overrides", {
+    description:
+      "Undo every set_style / set_attribute / set_text change the bridge has applied since it " +
+      "connected, restoring the original values. Best effort: elements the framework has since " +
+      "re-created may not roll back (a page reload always fully resets).",
+  }, () => run(bridge, "reset_overrides"));
+
   process.stderr.write(`[feedthrough] MCP server starting, bridge WebSocket on ws://127.0.0.1:${port}\n`);
   await server.connect(new StdioServerTransport());
 }
