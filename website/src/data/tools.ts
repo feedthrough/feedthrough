@@ -107,4 +107,41 @@ export const tools: Tool[] = [
     short: "URL, title, readyState, viewport, scroll position",
     long: "Returns basic page context: current URL, document title, readyState, viewport size, scroll position, and user agent. Useful to orient at the start of a session or to confirm a navigation happened.",
   },
+  {
+    id: "set-style",
+    name: "set_style(selector, properties)",
+    short: "Preview a visual fix live — set inline CSS on an element (not saved to source)",
+    long: "Sets one or more inline CSS properties on an element to preview a visual change live — shrink a label that doesn't fit, adjust padding, width, etc. This edits the running DOM only: it is NOT written to your source and resets on reload/HMR, so it's a preview the agent shows you, then persists by editing the actual CSS/component source once you're happy. Inline styles override the stylesheet and usually survive re-renders. Undo with reset_overrides.",
+    inputs: [
+      { name: "selector", type: "string", desc: "CSS selector — should match one element" },
+      { name: "properties", type: "Record<string,string>", desc: "CSS property → value map, e.g. { 'font-size': '13px', 'white-space': 'nowrap' }" },
+    ],
+  },
+  {
+    id: "set-attribute",
+    name: "set_attribute(selector, name, value)",
+    short: "Preview an attribute change — toggle disabled, swap a class, set aria-* (not saved)",
+    long: "Sets or removes an attribute on an element to preview a change (toggle disabled, swap a class, set an aria-* attribute). Pass value=null to remove it. Live preview only — not saved to source, resets on reload. If the attribute is one a framework controls (class, value, checked, disabled, …) the result includes a frameworkWarning that it may be reverted on the next render. Undo with reset_overrides.",
+    inputs: [
+      { name: "selector", type: "string", desc: "CSS selector — should match one element" },
+      { name: "name", type: "string", desc: "Attribute name" },
+      { name: "value", type: "string | null", desc: "New value, or null to remove the attribute" },
+    ],
+  },
+  {
+    id: "set-text",
+    name: "set_text(selector, text)",
+    short: "Preview wording/label changes — replace an element's text (not saved)",
+    long: "Replaces an element's text content to preview wording or label changes. Live preview only — not saved to source, resets on reload. textContent is almost always framework-controlled, so the result includes a frameworkWarning that React/Vue/etc. will likely overwrite it on the next render; persist real changes in the source. Undo with reset_overrides.",
+    inputs: [
+      { name: "selector", type: "string", desc: "CSS selector — should match one element" },
+      { name: "text", type: "string", desc: "New text content" },
+    ],
+  },
+  {
+    id: "reset-overrides",
+    name: "reset_overrides()",
+    short: "Undo every live set_style / set_attribute / set_text change",
+    long: "Undoes every set_style, set_attribute, and set_text change the bridge has applied since it connected, restoring the original values. Best effort: elements the framework has since re-created may not roll back, and a page reload always fully resets.",
+  },
 ];
