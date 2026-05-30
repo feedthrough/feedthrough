@@ -55,6 +55,7 @@ export class BridgeClient {
   private readonly connections = new Map<string, Connection>();
   private readonly pending = new Map<string, Pending>();
   private counter = 0;
+  private bound = false;
   startupError: string | null = null;
 
   constructor(port = 8765) {
@@ -71,14 +72,21 @@ export class BridgeClient {
       },
     });
 
+    this.wss.on("listening", () => { this.bound = true; });
+
     // Server-level errors (most commonly EADDRINUSE on startup). Without this
     // listener Node would crash on an unhandled 'error' event.
     this.wss.on("error", (err: NodeJS.ErrnoException) => {
-      if (err.code === "EADDRINUSE") {
-        this.startupError =
-          `Bridge WebSocket server failed to bind to port ${port} (address already in use). ` +
-          `Free the port (e.g. lsof -ti :${port} | xargs kill) or set FEEDTHROUGH_PORT ` +
-          `to an available port, then restart the MCP server.`;
+      if (!this.bound) {
+        // Any error before the server binds is a fatal startup failure.
+        this.startupError = err.code === "EADDRINUSE"
+          ? `Bridge WebSocket server failed to bind to port ${port} (address already in use). ` +
+            `Free the port (e.g. lsof -ti :${port} | xargs kill) or set FEEDTHROUGH_PORT ` +
+            `to an available port, then restart the MCP server.`
+          : `Bridge WebSocket server failed to start on port ${port}: ${err.message}` +
+            (err.code === "EACCES"
+              ? ` — port ${port} requires elevated privileges; set FEEDTHROUGH_PORT to a port above 1024.`
+              : ` (${err.code ?? "unknown error"}).`);
         process.stderr.write(`[feedthrough] ${this.startupError}\n`);
         return;
       }
