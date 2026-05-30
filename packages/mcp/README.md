@@ -40,10 +40,13 @@ Add to `.claude/settings.json` or `~/.claude.json`:
 | `click` | `selector: string` | Click a DOM element |
 | `fill` | `selector: string`, `value: string` | Type into an input |
 | `hover` | `selector: string` | Fire mouseover/mouseenter |
+| `press_key` | `selector: string`, `key: string` | Dispatch a key press (Enter, Escape, Tab, arrows, or a character) |
 | `inspect_element` | `selector: string`, `properties?: string[]` | Full element details — tag, attributes, bounding rect + inViewport, curated computed styles, live form state; `properties` reads extra CSS props by name |
 | `query_dom` | `selector: string` | All matching elements, summarised |
-| `get_console_logs` | `limit?: number`, `levels?: string[]`, `match?: string` | Console output across every method; filter by `levels: ['error']` to skip noisy output or `match` for substring |
-| `get_network_requests` | `filter?: string` | Fetch + XHR requests with headers and request/response bodies (10 KB cap); filter by URL substring or method |
+| `get_console_logs` | `limit?`, `levels?`, `match?`, `since?` | Console output across every method, plus uncaught errors & promise rejections; filter by levels/match/since |
+| `get_network_requests` | `filter?`, `since?` | Fetch + XHR with headers and request/response bodies (10 KB cap); narrow by filter or since |
+| `get_html` | `selector: string` | Raw outerHTML of a region (capped at 50 KB) |
+| `get_page_info` | — | URL, title, readyState, viewport, scroll, user agent |
 | `connection_status` | — | Whether a browser is currently connected |
 | `set_style` | `selector: string`, `properties: Record<string,string>` | Preview a visual fix — set inline CSS live (not saved to source) |
 | `set_attribute` | `selector: string`, `name: string`, `value: string \| null` | Preview an attribute change (toggle disabled, swap class, aria-*); `null` removes |

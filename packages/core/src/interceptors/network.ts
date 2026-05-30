@@ -127,8 +127,9 @@ export class NetworkInterceptor {
     if (this.OrigXHR) window.XMLHttpRequest = this.OrigXHR;
   }
 
-  getRequests(filter?: string): NetworkMessage[] {
-    const all = [...this.requests];
+  getRequests(filter?: string, since?: number): NetworkMessage[] {
+    let all = [...this.requests];
+    if (since !== undefined) all = all.filter(r => r.ts >= since);
     if (!filter) return all;
     const lower = filter.toLowerCase();
     return all.filter(r => r.url.toLowerCase().includes(lower) || r.method.toLowerCase() === lower);

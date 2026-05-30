@@ -487,3 +487,79 @@ test("get_console_logs match filter is case-insensitive", async ({ page }) => {
   );
   expect(errorsMatchingAuth.length).toBe(1);
 });
+
+test("uncaught errors and unhandled rejections are captured", async ({ page }) => {
+  await page.evaluate(() => {
+    setTimeout(() => { throw new Error("boom uncaught"); }, 0);
+    Promise.reject(new Error("boom rejected"));
+  });
+
+  const logs = await server.poll<ConsoleEntry[]>(
+    "get_console_logs", { levels: ["error"] },
+    (l) => l.some((e) => e.method === "uncaught") && l.some((e) => e.method === "unhandledrejection"),
+  );
+  const u = logs.find((e) => e.method === "uncaught")!;
+  expect(JSON.stringify(u.args)).toContain("boom uncaught");
+  expect(typeof u.stack).toBe("string");
+  const r = logs.find((e) => e.method === "unhandledrejection")!;
+  expect(JSON.stringify(r.args)).toContain("boom rejected");
+});
+
+test("since filter scopes logs + network to what happened after a point", async ({ page }) => {
+  await page.evaluate(() => console.log("before marker"));
+  await server.poll<ConsoleEntry[]>(
+    "get_console_logs", {},
+    (l) => l.some((e) => JSON.stringify(e.args).includes("before marker")),
+  );
+
+  const t = Date.now();
+  await new Promise((r) => setTimeout(r, 5));
+  await page.evaluate(() => {
+    console.log("after marker");
+    fetch("/api/since-test").catch(() => {});
+  });
+
+  const logs = await server.poll<ConsoleEntry[]>(
+    "get_console_logs", { since: t },
+    (l) => l.some((e) => JSON.stringify(e.args).includes("after marker")),
+  );
+  expect(logs.some((e) => JSON.stringify(e.args).includes("after marker"))).toBe(true);
+  expect(logs.some((e) => JSON.stringify(e.args).includes("before marker"))).toBe(false);
+
+  const nets = await server.poll<NetEntry[]>(
+    "get_network_requests", { since: t },
+    (r) => r.some((x) => x.url.includes("since-test")),
+  );
+  expect(nets.some((x) => x.url.includes("since-test"))).toBe(true);
+});
+
+test("press_key fires key handlers on the target element", async ({ page }) => {
+  await page.evaluate(() => {
+    const input = document.getElementById("search-input")!;
+    input.addEventListener("keydown", (e) => {
+      if ((e as KeyboardEvent).key === "Enter") document.title = "ENTER_PRESSED";
+    });
+  });
+
+  await server.command("press_key", { selector: "#search-input", key: "Enter" });
+  const info = await server.command<{ title: string }>("get_page_info");
+  expect(info.title).toBe("ENTER_PRESSED");
+});
+
+test("get_html returns the outerHTML of a region", async () => {
+  const res = await server.command<{ html: string; truncated: boolean }>(
+    "get_html", { selector: "#member-list" },
+  );
+  expect(res.html).toContain("<li");
+  expect(res.html).toContain("Alice");
+  expect(res.truncated).toBe(false);
+});
+
+test("get_page_info returns page context", async () => {
+  const info = await server.command<{ url: string; title: string; readyState: string; viewport: { width: number; height: number } }>(
+    "get_page_info",
+  );
+  expect(info.url).toContain("localhost:4173");
+  expect(typeof info.title).toBe("string");
+  expect(info.viewport.width).toBeGreaterThan(0);
+});

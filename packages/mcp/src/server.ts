@@ -76,20 +76,25 @@ export async function startServer(port = 8765): Promise<void> {
       "log/warn/error/info/debug plus dir, table, assert, trace, count, countReset, time/timeEnd/" +
       "timeLog, group/groupCollapsed/groupEnd, and clear. Each entry has a 'level' (the closest of " +
       "the five standard levels); rich methods also carry a 'method' field, and console.trace() " +
-      "plus failing console.assert() entries include a 'stack'. When the app is noisy with " +
-      "framework or deprecation warnings, pass levels: ['error'] (or ['error', 'warn']) so the " +
-      "real errors aren't buried, and use 'match' to narrow further by content. Always check this " +
-      "early — app errors and debug output often identify the root cause immediately.",
+      "plus failing console.assert() entries include a 'stack'. Uncaught exceptions and unhandled " +
+      "promise rejections are also captured (level 'error', method 'uncaught' / 'unhandledrejection') " +
+      "even though the app never logged them. When the app is noisy with framework or deprecation " +
+      "warnings, pass levels: ['error'] (or ['error', 'warn']) so the real errors aren't buried, " +
+      "and use 'match' to narrow by content. Pass 'since' (a ms timestamp from an earlier entry's " +
+      "'ts', or Date.now() before an action) to see only what happened after that point. Always " +
+      "check this early — app errors and debug output often identify the root cause immediately.",
     inputSchema: {
       limit: z.number().int().positive().optional().describe("Return only the N most-recent entries"),
       levels: z.array(z.enum(["log", "warn", "error", "info", "debug"])).optional()
         .describe("Restrict to these levels — e.g. ['error'] to skip noisy warn/info/debug"),
       match: z.string().optional().describe("Case-insensitive substring filter on the serialized message content"),
+      since: z.number().optional().describe("Only entries with ts >= this (ms epoch). Scope to 'what happened after I did X'."),
     },
-  }, ({ limit, levels, match }) => run(bridge, "get_console_logs", {
+  }, ({ limit, levels, match, since }) => run(bridge, "get_console_logs", {
     ...(limit !== undefined && { limit }),
     ...(levels !== undefined && { levels }),
     ...(match !== undefined && { match }),
+    ...(since !== undefined && { since }),
   }));
 
   server.registerTool("get_network_requests", {
@@ -98,9 +103,16 @@ export async function startServer(port = 8765): Promise<void> {
       "HTTP status, duration, request and response headers, and request and response bodies " +
       "(bodies capped at 10 KB each — anything longer is truncated with a marker; binary responses " +
       "are summarised). Use this to find failed requests (4xx/5xx), wrong URLs, slow calls, or to " +
-      "inspect what the app actually sent or received. Use the filter argument to narrow results.",
-    inputSchema: { filter: z.string().optional().describe("Filter by URL substring or HTTP method, e.g. 'api' or 'POST'") },
-  }, ({ filter }) => run(bridge, "get_network_requests", filter !== undefined ? { filter } : {}));
+      "inspect what the app actually sent or received. Use 'filter' to narrow by URL/method and " +
+      "'since' (a ms timestamp) to see only requests that fired after an action.",
+    inputSchema: {
+      filter: z.string().optional().describe("Filter by URL substring or HTTP method, e.g. 'api' or 'POST'"),
+      since: z.number().optional().describe("Only requests with ts >= this (ms epoch). Scope to 'what fired after I did X'."),
+    },
+  }, ({ filter, since }) => run(bridge, "get_network_requests", {
+    ...(filter !== undefined && { filter }),
+    ...(since !== undefined && { since }),
+  }));
 
   server.registerTool("query_dom", {
     description:
@@ -155,6 +167,32 @@ export async function startServer(port = 8765): Promise<void> {
       "Useful for triggering tooltips, dropdown menus, or hover states.",
     inputSchema: { selector: z.string().describe("CSS selector") },
   }, ({ selector }) => run(bridge, "hover", { selector }));
+
+  server.registerTool("press_key", {
+    description:
+      "Dispatch a key press (keydown/keypress/keyup) on an element — e.g. Enter to submit a search, " +
+      "Escape to close a modal, Tab to move focus, or ArrowUp/ArrowDown in a list. Use named keys " +
+      "(Enter, Escape, Tab, Backspace, Delete, ArrowUp/Down/Left/Right) or a single character. " +
+      "Note: this fires key handlers but does NOT insert text into inputs — use 'fill' to set an " +
+      "input's value, then press_key for the submit/shortcut.",
+    inputSchema: {
+      selector: z.string().describe("CSS selector for the element to receive the key"),
+      key: z.string().describe("A key name (Enter, Escape, Tab, ArrowDown, …) or a single character"),
+    },
+  }, ({ selector, key }) => run(bridge, "press_key", { selector, key }));
+
+  server.registerTool("get_html", {
+    description:
+      "Return the outerHTML of an element (capped at 50 KB). Use this when the summarised query_dom " +
+      "output isn't enough and you need to see the actual markup/structure of a region.",
+    inputSchema: { selector: z.string().describe("CSS selector — should match one element") },
+  }, ({ selector }) => run(bridge, "get_html", { selector }));
+
+  server.registerTool("get_page_info", {
+    description:
+      "Return basic page context: current URL, document title, readyState, viewport size, scroll " +
+      "position, and user agent. Useful to orient at the start of a session or confirm navigation.",
+  }, () => run(bridge, "get_page_info"));
 
   server.registerTool("set_style", {
     description:

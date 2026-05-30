@@ -53,8 +53,11 @@ export interface FillCommand      { type: "command"; id: string; action: "fill";
 export interface HoverCommand     { type: "command"; id: string; action: "hover";    selector: string }
 export interface InspectCommand   { type: "command"; id: string; action: "inspect";  selector: string; properties?: string[] }
 export interface QueryDomCommand  { type: "command"; id: string; action: "query_dom"; selector: string }
-export interface GetConsoleLogsCommand    { type: "command"; id: string; action: "get_console_logs";    limit?: number; levels?: LogLevel[]; match?: string }
-export interface GetNetworkRequestsCommand { type: "command"; id: string; action: "get_network_requests"; filter?: string }
+export interface PressKeyCommand  { type: "command"; id: string; action: "press_key"; selector: string; key: string }
+export interface GetHtmlCommand   { type: "command"; id: string; action: "get_html";   selector: string }
+export interface GetPageInfoCommand { type: "command"; id: string; action: "get_page_info" }
+export interface GetConsoleLogsCommand    { type: "command"; id: string; action: "get_console_logs";    limit?: number; levels?: LogLevel[]; match?: string; since?: number }
+export interface GetNetworkRequestsCommand { type: "command"; id: string; action: "get_network_requests"; filter?: string; since?: number }
 
 // Live-edit (preview) commands — mutate the running DOM, never the source.
 export interface SetStyleCommand     { type: "command"; id: string; action: "set_style";     selector: string; properties: Record<string, string> }
@@ -64,7 +67,7 @@ export interface ResetOverridesCommand { type: "command"; id: string; action: "r
 
 export type Command =
   | ClickCommand | FillCommand | HoverCommand | InspectCommand
-  | QueryDomCommand
+  | QueryDomCommand | PressKeyCommand | GetHtmlCommand | GetPageInfoCommand
   | GetConsoleLogsCommand | GetNetworkRequestsCommand
   | SetStyleCommand | SetAttributeCommand | SetTextCommand | ResetOverridesCommand;
 

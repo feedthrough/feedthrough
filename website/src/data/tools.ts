@@ -40,6 +40,16 @@ export const tools: Tool[] = [
     inputs: [{ name: "selector", type: "string", desc: "CSS selector for the element to hover" }],
   },
   {
+    id: "press-key",
+    name: "press_key(selector, key)",
+    short: "Dispatch a key press — Enter to submit, Escape to close, Tab, arrow keys",
+    long: "Dispatches keydown/keypress/keyup on an element — Enter to submit a search, Escape to close a modal, Tab to move focus, ArrowUp/ArrowDown in a list. Use named keys (Enter, Escape, Tab, Backspace, Delete, ArrowUp/Down/Left/Right) or a single character. Note: it fires key handlers but does not insert text into inputs — use fill to set a value, then press_key for the submit/shortcut.",
+    inputs: [
+      { name: "selector", type: "string", desc: "CSS selector for the element to receive the key" },
+      { name: "key", type: "string", desc: "A key name (Enter, Escape, ArrowDown, …) or a single character" },
+    ],
+  },
+  {
     id: "inspect-element",
     name: "inspect_element(selector, properties?)",
     short: "Tag, attributes, bounding rect, computed styles, and live form state",
@@ -58,26 +68,43 @@ export const tools: Tool[] = [
   },
   {
     id: "get-console-logs",
-    name: "get_console_logs(limit?, levels?, match?)",
-    short: "Console output from every method — log/warn/error, plus dir, table, assert, trace, count, time, group",
-    long: "Returns console output captured since the bridge connected. Covers every console method — log/warn/error/info/debug plus dir, table, assert, trace, count, countReset, time/timeEnd/timeLog, group/groupCollapsed/groupEnd, and clear. Each entry has a level (the closest of the five standard levels); rich methods also carry a method field, and console.trace() plus failing console.assert() entries include a stack. When the app is noisy with framework or deprecation warnings, pass levels: ['error'] (or ['error', 'warn']) so real errors aren't buried, and use match to narrow further by content. Always check this early — app errors and debug output often pinpoint the root cause immediately.",
+    name: "get_console_logs(limit?, levels?, match?, since?)",
+    short: "Console output from every method — plus uncaught errors & rejections",
+    long: "Returns console output captured since the bridge connected. Covers every console method — log/warn/error/info/debug plus dir, table, assert, trace, count, countReset, time/timeEnd/timeLog, group/groupCollapsed/groupEnd, and clear. Uncaught exceptions and unhandled promise rejections are captured too (level error, method uncaught / unhandledrejection) even though the app never logged them. Each entry has a level; rich methods carry a method field, and trace/assert/uncaught entries include a stack. When the app is noisy, pass levels: ['error'] so real errors aren't buried, use match to narrow by content, and use since (a ms timestamp) to see only what happened after an action.",
     inputs: [
       { name: "limit", type: "number (optional)", desc: "Return only the N most recent entries" },
       { name: "levels", type: "('log'|'warn'|'error'|'info'|'debug')[] (optional)", desc: "Restrict to these levels — e.g. ['error'] to skip noisy warn/info/debug" },
       { name: "match", type: "string (optional)", desc: "Case-insensitive substring filter on the serialized message content" },
+      { name: "since", type: "number (optional)", desc: "Only entries with ts >= this (ms epoch). Scope to 'what happened after I did X'." },
     ],
   },
   {
     id: "get-network-requests",
-    name: "get_network_requests(filter?)",
+    name: "get_network_requests(filter?, since?)",
     short: "Fetch + XHR with headers and request/response bodies, capped at 10 KB",
-    long: "Returns every fetch and XHR captured since the bridge connected, including URL, method, HTTP status, duration, request and response headers, and request and response bodies. Bodies are capped at 10 KB each — anything longer is truncated with a marker; binary responses (image/video/audio/font/octet-stream/pdf/zip) are summarised as a placeholder. Use this to find failed requests (4xx/5xx), wrong URLs, slow calls, or to inspect what the app actually sent or received. Use the filter argument to narrow results.",
-    inputs: [{ name: "filter", type: "string (optional)", desc: "Filter by URL substring or HTTP method, e.g. 'api' or 'POST'" }],
+    long: "Returns every fetch and XHR captured since the bridge connected, including URL, method, HTTP status, duration, request and response headers, and request and response bodies. Bodies are capped at 10 KB each — anything longer is truncated with a marker; binary responses (image/video/audio/font/octet-stream/pdf/zip) are summarised as a placeholder. Use this to find failed requests (4xx/5xx), wrong URLs, slow calls, or to inspect what the app actually sent or received. Use filter to narrow by URL/method and since (a ms timestamp) to see only requests that fired after an action.",
+    inputs: [
+      { name: "filter", type: "string (optional)", desc: "Filter by URL substring or HTTP method, e.g. 'api' or 'POST'" },
+      { name: "since", type: "number (optional)", desc: "Only requests with ts >= this (ms epoch). Scope to 'what fired after I did X'." },
+    ],
   },
   {
     id: "connection-status",
     name: "connection_status()",
     short: "Check whether a browser is currently connected",
     long: "Checks whether a browser with the Feedthrough bridge is currently connected. Returns the connected flag and a list of open tabs (id, url, which is the active one). Call this first — every tool except get_instructions requires a connected browser.",
+  },
+  {
+    id: "get-html",
+    name: "get_html(selector)",
+    short: "Raw outerHTML of a region (capped at 50 KB)",
+    long: "Returns the outerHTML of an element, capped at 50 KB. Use this when the summarised query_dom output isn't enough and you need to see the actual markup and structure of a region.",
+    inputs: [{ name: "selector", type: "string", desc: "CSS selector — should match one element" }],
+  },
+  {
+    id: "get-page-info",
+    name: "get_page_info()",
+    short: "URL, title, readyState, viewport, scroll position",
+    long: "Returns basic page context: current URL, document title, readyState, viewport size, scroll position, and user agent. Useful to orient at the start of a session or to confirm a navigation happened.",
   },
 ];

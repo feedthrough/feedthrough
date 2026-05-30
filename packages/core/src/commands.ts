@@ -39,8 +39,11 @@ export class CommandHandler {
       case "hover":               return hoverEl(cmd.selector);
       case "inspect":             return inspectEl(cmd.selector, cmd.properties);
       case "query_dom":           return queryDom(cmd.selector);
-      case "get_console_logs":    return this.console.getLogs({ limit: cmd.limit, levels: cmd.levels, match: cmd.match });
-      case "get_network_requests": return this.network.getRequests(cmd.filter);
+      case "get_console_logs":    return this.console.getLogs({ limit: cmd.limit, levels: cmd.levels, match: cmd.match, since: cmd.since });
+      case "get_network_requests": return this.network.getRequests(cmd.filter, cmd.since);
+      case "press_key":           return pressKey(cmd.selector, cmd.key);
+      case "get_html":            return getHtml(cmd.selector);
+      case "get_page_info":       return getPageInfo();
       case "set_style":           return setStyle(cmd.selector, cmd.properties);
       case "set_attribute":       return setAttribute(cmd.selector, cmd.name, cmd.value);
       case "set_text":            return setText(cmd.selector, cmd.text);
@@ -195,6 +198,62 @@ function queryDom(selector: string) {
     classes: Array.from(el.classList),
     textContent: el.textContent?.trim().slice(0, 100),
   }));
+}
+
+// Named keys → DOM code/keyCode. keyCode is legacy but many handlers still read
+// it, so we set it for the common keys. Single printable chars are handled below.
+const NAMED_KEYS: Record<string, { code: string; keyCode: number }> = {
+  Enter:      { code: "Enter",      keyCode: 13 },
+  Tab:        { code: "Tab",        keyCode: 9 },
+  Escape:     { code: "Escape",     keyCode: 27 },
+  Backspace:  { code: "Backspace",  keyCode: 8 },
+  Delete:     { code: "Delete",     keyCode: 46 },
+  ArrowUp:    { code: "ArrowUp",    keyCode: 38 },
+  ArrowDown:  { code: "ArrowDown",  keyCode: 40 },
+  ArrowLeft:  { code: "ArrowLeft",  keyCode: 37 },
+  ArrowRight: { code: "ArrowRight", keyCode: 39 },
+  " ":        { code: "Space",      keyCode: 32 },
+};
+
+function pressKey(selector: string, key: string) {
+  const el = getEl(selector) as HTMLElement;
+  el.focus?.();
+  const named = NAMED_KEYS[key];
+  const keyCode = named ? named.keyCode : (key.length === 1 ? key.toUpperCase().charCodeAt(0) : 0);
+  const code = named ? named.code : (key.length === 1 ? `Key${key.toUpperCase()}` : key);
+  const init: KeyboardEventInit & { keyCode: number; which: number } = {
+    key, code, keyCode, which: keyCode, bubbles: true, cancelable: true,
+  };
+  el.dispatchEvent(new KeyboardEvent("keydown", init));
+  if (key.length === 1) el.dispatchEvent(new KeyboardEvent("keypress", init));
+  el.dispatchEvent(new KeyboardEvent("keyup", init));
+  // Note: synthetic key events fire handlers but do NOT insert text into inputs.
+  // Use `fill` to set an input's value; use this to trigger Enter/Escape/shortcuts.
+  return { tag: el.tagName.toLowerCase(), key };
+}
+
+const MAX_HTML_CHARS = 50_000;
+
+function getHtml(selector: string) {
+  const el = getEl(selector);
+  const html = el.outerHTML;
+  const truncated = html.length > MAX_HTML_CHARS;
+  return {
+    tag: el.tagName.toLowerCase(),
+    html: truncated ? html.slice(0, MAX_HTML_CHARS) + "…[truncated]" : html,
+    truncated,
+  };
+}
+
+function getPageInfo() {
+  return {
+    url: window.location.href,
+    title: document.title,
+    readyState: document.readyState,
+    viewport: { width: window.innerWidth, height: window.innerHeight },
+    scroll: { x: window.scrollX, y: window.scrollY },
+    userAgent: navigator.userAgent,
+  };
 }
 
 // ── Live edit (preview) ─────────────────────────────────────────────────────────

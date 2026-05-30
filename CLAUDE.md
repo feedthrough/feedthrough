@@ -115,11 +115,12 @@ Contains three deliberate bugs for testing the MCP diagnostic workflow:
 3. Activity feed fetches `/api/events` (wrong URL, 404), error swallowed silently — detectable
    via `get_network_requests` + `get_console_logs`
 
-## MCP tools (all thirteen)
+## MCP tools (all sixteen)
 
-Observe: `get_instructions`, `connection_status`, `get_console_logs`, `get_network_requests`,
-`query_dom`, `inspect_element`
-Interact: `click`, `fill`, `hover`
+Observe: `get_instructions`, `connection_status`, `get_page_info`, `get_console_logs`
+(incl. uncaught errors/rejections), `get_network_requests`, `query_dom`, `inspect_element`,
+`get_html`
+Interact: `click`, `fill`, `hover`, `press_key`
 Live-edit (preview, not saved to source): `set_style`, `set_attribute`, `set_text`,
 `reset_overrides`
 

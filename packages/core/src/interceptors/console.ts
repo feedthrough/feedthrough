@@ -4,6 +4,7 @@ export interface GetLogsOptions {
   limit?: number;
   levels?: LogLevel[];
   match?: string;
+  since?: number;
 }
 
 const STD_LEVELS: LogLevel[] = ["log", "warn", "error", "info", "debug"];
@@ -17,6 +18,8 @@ export class ConsoleInterceptor {
   private logs: ConsoleMessage[] = [];
   private counts = new Map<string, number>();
   private timers = new Map<string, number>();
+  private onError?: (e: ErrorEvent) => void;
+  private onRejection?: (e: PromiseRejectionEvent) => void;
 
   install(): void {
     const c = console as unknown as Record<string, AnyFn>;
@@ -145,6 +148,8 @@ export class ConsoleInterceptor {
       c[name] = original;
     }
     this.originals.clear();
+    if (this.onError) window.removeEventListener("error", this.onError);
+    if (this.onRejection) window.removeEventListener("unhandledrejection", this.onRejection);
   }
 
   getLogs(opts: GetLogsOptions = {}): ConsoleMessage[] {
@@ -156,6 +161,9 @@ export class ConsoleInterceptor {
     if (opts.match) {
       const needle = opts.match.toLowerCase();
       result = result.filter(m => JSON.stringify(m.args).toLowerCase().includes(needle));
+    }
+    if (opts.since !== undefined) {
+      result = result.filter(m => m.ts >= opts.since!);
     }
     if (opts.limit !== undefined) {
       result = result.slice(-opts.limit);
