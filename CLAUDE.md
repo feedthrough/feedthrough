@@ -124,6 +124,29 @@ Interact: `click`, `fill`, `hover`, `press_key`
 Live-edit (preview, not saved to source): `set_style`, `set_attribute`, `set_text`,
 `reset_overrides`
 
+## Documentation map — keep these in sync
+
+The tool list and other user-facing facts are duplicated across several places. When you
+**add, remove, or change an MCP tool** (or its inputs), update ALL of these in the same change —
+they drift silently otherwise:
+
+- **Core** — `packages/core/src/types.ts` (the `Command` union) and `commands.ts` (dispatch +
+  implementation); for console/network behaviour, the relevant interceptor.
+- **MCP server** — `packages/mcp/src/server.ts` (`registerTool` call + its description/inputSchema).
+- **Root `README.md`** — the `## MCP tools` table.
+- **`packages/mcp/README.md`** — the `## Tools` table (has an Input column).
+- **Website tool data** — `website/src/data/tools.ts`. Single source of truth for the site;
+  drives BOTH the homepage cards (`components/Tools.astro`) and the `/tools` reference page
+  (`pages/tools.astro`). Edit here, not in the components.
+- **Tool count** — the `<h2>` in `website/src/components/Tools.astro` AND the “N MCP tools”
+  line in `website/src/components/HowItWorks.astro`, AND the `## MCP tools (all N)` heading
+  here, AND the “…with N tools” bullet under Package details → `src/server.ts` above.
+- **Tests** — add/adjust a case in `examples/playwright-app/tests/bridge-protocol.spec.ts`.
+
+Where other things live: per-adapter install/usage is in each `packages/*/README.md`;
+landing-page copy is in `website/src/components/*.astro`; long-term plans and decisions are in
+the session auto-memory, not the repo.
+
 WebSocket server binds to `127.0.0.1` only and validates the `Origin` header (localhost origins
 only) — v1 is explicitly local-only.
 
