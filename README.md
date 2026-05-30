@@ -202,14 +202,27 @@ Then ask your AI agent:
 | Tool | Description |
 |---|---|
 | `get_instructions()` | Usage guide — recommended workflow, tool ordering, and selector tips |
+| `query_dom(selector)` | All elements matching a CSS selector |
+| `inspect_element(selector, properties?)` | Tag, attributes, full bounding rect + inViewport, curated computed styles, live form state; `properties` reads extra CSS props by name |
+| `get_html(selector)` | Raw outerHTML of a region (capped at 50 KB) |
+| `get_console_logs(limit?, levels?, match?, since?)` | Console output (all methods) plus uncaught errors & promise rejections; filter by `levels`, `match`, or `since` timestamp |
+| `get_network_requests(filter?, since?)` | Captured fetch + XHR — URL, method, status, duration, headers, request/response bodies (10 KB cap); narrow by `filter` or `since` |
+| `get_page_info()` | URL, title, readyState, viewport size, scroll position, user agent |
+| `connection_status()` | List connected tabs and which one is currently active |
 | `click(selector)` | Click an element |
 | `fill(selector, value)` | Type into an input field |
 | `hover(selector)` | Trigger mouseover/mouseenter |
-| `inspect_element(selector, properties?)` | Tag, attributes, full bounding rect + inViewport, curated computed styles, live form state; `properties` reads extra CSS props by name |
-| `query_dom(selector)` | All elements matching a CSS selector |
-| `get_console_logs(limit?, levels?, match?)` | Captured console output (all methods); filter by `levels: ['error']` to skip noisy warn/info or by `match` substring |
-| `get_network_requests(filter?)` | Captured fetch + XHR requests — URL, method, status, duration, headers, and request/response bodies (capped at 10 KB) |
-| `connection_status()` | List connected tabs and which one is currently active |
+| `press_key(selector, key)` | Dispatch a key press — Enter, Escape, Tab, arrow keys, or a character |
+| `set_style(selector, properties)` | Preview a visual fix — set inline CSS live (not saved to source) |
+| `set_attribute(selector, name, value)` | Preview an attribute change — toggle disabled, swap a class, set aria-* (`null` removes) |
+| `set_text(selector, text)` | Preview wording/label changes — replace an element's text |
+| `reset_overrides()` | Undo every live `set_style` / `set_attribute` / `set_text` change |
+
+**Live edit is a preview, not a save.** `set_style` / `set_attribute` / `set_text` mutate the
+running DOM so the agent can show you a fix without a rebuild. They are *not* written to your
+source and reset on reload/HMR. The loop: the agent previews live, you confirm, then it edits the
+actual source to make it stick. Changes a framework owns (text, controlled attributes) may be
+overwritten on the next render — the tool result flags this so the agent can tell you.
 
 ---
 

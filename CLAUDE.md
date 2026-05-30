@@ -85,7 +85,7 @@ Public API: `init(options?)` (convenience) and `FeedthroughBridge` class.
 
 - `src/bridge-client.ts` — WebSocket server on `:8765`, manages browser connection,
   maps command IDs to pending promises with 10 s timeouts
-- `src/server.ts` — `McpServer` with nine tools registered via `registerTool` (not the
+- `src/server.ts` — `McpServer` with sixteen tools registered via `registerTool` (not the
   deprecated `tool()`). Uses MCP SDK 1.29.0 / Zod v4.
 - All logging goes to `process.stderr` — stdout is reserved for the MCP stdio protocol
 - Port override: `FEEDTHROUGH_PORT` env var
