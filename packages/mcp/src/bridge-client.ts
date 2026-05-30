@@ -55,6 +55,7 @@ export class BridgeClient {
   private readonly connections = new Map<string, Connection>();
   private readonly pending = new Map<string, Pending>();
   private counter = 0;
+  startupError: string | null = null;
 
   constructor(port = 8765) {
     this.wss = new WebSocketServer({
@@ -74,10 +75,12 @@ export class BridgeClient {
     // listener Node would crash on an unhandled 'error' event.
     this.wss.on("error", (err: NodeJS.ErrnoException) => {
       if (err.code === "EADDRINUSE") {
-        process.stderr.write(
-          `[feedthrough] port ${port} is already in use — set FEEDTHROUGH_PORT to a free port\n`,
-        );
-        process.exit(1);
+        this.startupError =
+          `Bridge WebSocket server failed to bind to port ${port} (address already in use). ` +
+          `Free the port (e.g. lsof -ti :${port} | xargs kill) or set FEEDTHROUGH_PORT ` +
+          `to an available port, then restart the MCP server.`;
+        process.stderr.write(`[feedthrough] ${this.startupError}\n`);
+        return;
       }
       process.stderr.write(`[feedthrough] websocket server error: ${err.message}\n`);
     });
@@ -151,7 +154,7 @@ export class BridgeClient {
   }
 
   get connected(): boolean {
-    return this.activeConnection !== null;
+    return this.startupError === null && this.activeConnection !== null;
   }
 
   get tabs(): TabInfo[] {
@@ -163,6 +166,10 @@ export class BridgeClient {
 
   sendCommand(action: string, params: Record<string, unknown> = {}): Promise<unknown> {
     return new Promise((resolve, reject) => {
+      if (this.startupError) {
+        reject(new Error(this.startupError));
+        return;
+      }
       const conn = this.activeConnection;
       if (!conn) {
         reject(new Error("no browser connected — open a page with @feedthrough/core injected"));

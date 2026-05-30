@@ -68,7 +68,11 @@ export async function startServer(port = 8765): Promise<void> {
       "Check whether a browser with the Feedthrough bridge is currently connected. " +
       "Returns connected flag and a list of open tabs (id, url, which is active). " +
       "Call this first — every tool except get_instructions requires a connected browser.",
-  }, () => Promise.resolve(ok({ connected: bridge.connected, tabs: bridge.tabs })));
+  }, () => Promise.resolve(
+    bridge.startupError
+      ? err(bridge.startupError)
+      : ok({ connected: bridge.connected, tabs: bridge.tabs }),
+  ));
 
   server.registerTool("get_console_logs", {
     description:
