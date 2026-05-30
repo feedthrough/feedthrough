@@ -40,7 +40,7 @@ Add to `.claude/settings.json` or `~/.claude.json`:
 | `click` | `selector: string` | Click a DOM element |
 | `fill` | `selector: string`, `value: string` | Type into an input |
 | `hover` | `selector: string` | Fire mouseover/mouseenter |
-| `inspect_element` | `selector: string` | Full element details — tag, classes, attributes, rect, styles |
+| `inspect_element` | `selector: string`, `properties?: string[]` | Full element details — tag, attributes, bounding rect + inViewport, curated computed styles, live form state; `properties` reads extra CSS props by name |
 | `query_dom` | `selector: string` | All matching elements, summarised |
 | `get_console_logs` | `limit?: number`, `levels?: string[]`, `match?: string` | Console output across every method; filter by `levels: ['error']` to skip noisy output or `match` for substring |
 | `get_network_requests` | `filter?: string` | Fetch + XHR requests with headers and request/response bodies (10 KB cap); filter by URL substring or method |
