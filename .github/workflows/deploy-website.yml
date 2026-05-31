@@ -1,7 +1,9 @@
 name: Deploy website to GitHub Pages
 
-# Manual trigger only — change to `push: branches: [main]` when the repo goes public.
+# Deploys on every push to main; workflow_dispatch kept for manual re-runs.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
