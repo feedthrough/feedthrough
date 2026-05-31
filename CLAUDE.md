@@ -141,7 +141,10 @@ they drift silently otherwise:
 - **Tool count** — the `<h2>` in `website/src/components/Tools.astro` AND the “N MCP tools”
   line in `website/src/components/HowItWorks.astro`, AND the `## MCP tools (all N)` heading
   here, AND the “…with N tools” bullet under Package details → `src/server.ts` above.
-- **Tests** — add/adjust a case in `examples/playwright-app/tests/bridge-protocol.spec.ts`.
+- **Tests** — for tool/wire-protocol behaviour, add/adjust a case in
+  `examples/playwright-app/tests/bridge-protocol.spec.ts`. For `BridgeClient` internals that the
+  stand-in server can't reach (startup/bind errors, connection bookkeeping), use the `node:test`
+  unit tests in `packages/mcp/test/` (`pnpm --filter @feedthrough/mcp test`).
 
 Where other things live: per-adapter install/usage is in each `packages/*/README.md`;
 landing-page copy is in `website/src/components/*.astro`; long-term plans and decisions are in

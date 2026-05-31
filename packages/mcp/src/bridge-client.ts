@@ -85,7 +85,7 @@ export class BridgeClient {
             `to an available port, then restart the MCP server.`
           : `Bridge WebSocket server failed to start on port ${port}: ${err.message}` +
             (err.code === "EACCES"
-              ? ` — port ${port} requires elevated privileges; set FEEDTHROUGH_PORT to a port above 1024.`
+              ? `. Port ${port} requires elevated privileges; set FEEDTHROUGH_PORT to a port above 1024.`
               : ` (${err.code ?? "unknown error"}).`);
         process.stderr.write(`[feedthrough] ${this.startupError}\n`);
         return;
@@ -162,7 +162,7 @@ export class BridgeClient {
   }
 
   get connected(): boolean {
-    return this.startupError === null && this.activeConnection !== null;
+    return this.activeConnection !== null;
   }
 
   get tabs(): TabInfo[] {
