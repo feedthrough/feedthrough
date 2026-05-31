@@ -17,7 +17,7 @@ By submitting a contribution to this project, you agree to the following terms.
 **1. Definitions**
 
 "Maintainer" means Henrik Enquist and any legal entity he controls or may form to own the
-Feedthrough project.
+Feedthrough project, together with his (or its) successors and assigns.
 
 "Contribution" means any original work of authorship you submit to the project, including any
 modifications or additions to existing files.
@@ -61,6 +61,13 @@ that the project is sold, licensed commercially, or acquired.
 
 You provide your Contributions on an "as-is" basis, without warranties or conditions of any
 kind.
+
+**8. Assignment**
+
+The Maintainer may assign or transfer this agreement, and all rights and licences granted under
+it, to any successor in interest to, or acquirer of, the Feedthrough project, without further
+notice to or consent from you. The licences you grant above are irrevocable and survive any such
+transfer.
 
 ---
 
