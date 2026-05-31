@@ -2,6 +2,7 @@ packages:
   - "packages/*"
   - "examples/*"
   - "website"
+  - "website/demos"
 allowBuilds:
   '@parcel/watcher': true
   cypress: false

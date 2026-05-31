@@ -25,6 +25,9 @@ packages/
   sveltekit/   @feedthrough/sveltekit  — SvelteKit adapter (handle hook + transformPageChunk)
   remix/       @feedthrough/remix      — Remix adapter (Vite dev-server middleware)
 website/                               — Astro landing page (feedthrough.dev)
+website/demos/                         — self-playing harness that generates the landing-page
+                                         demo videos (scripted reenactments); Playwright records,
+                                         ffmpeg encodes to website/public/. See its own README.
 examples/                              — one demo app per adapter (react, vue, nextjs, nuxt,
                                          sveltekit, remix, webpack, playwright); react-app
                                          carries three deliberate bugs for the MCP workflow
@@ -39,6 +42,7 @@ pnpm typecheck                                # typecheck all packages
 pnpm --filter @feedthrough/core build         # build one package
 pnpm --filter feedthrough-website dev         # run Astro dev server (http://localhost:4321)
 pnpm --filter @feedthrough/react-app-example dev  # run example app (http://localhost:5173)
+pnpm --filter @feedthrough/demos dev          # run the demo-video harness (http://localhost:5173)
 ```
 
 Node ≥ 22 required. Package manager is pnpm (v11+).
@@ -105,6 +109,20 @@ Public API: `init(options?)` (convenience) and `FeedthroughBridge` class.
 - `src/layouts/Layout.astro` — HTML shell with fonts, meta, scroll observer
 - Deploy: GitHub Actions workflow (`.github/workflows/deploy-website.yml`), manual trigger only
   until repo goes public — then flip to `push: branches: [main]`
+
+### website/demos (demo-video harness)
+
+Separate Vite + React app (`@feedthrough/demos`, in the `website/demos` workspace package) whose
+only job is to generate the landing-page clips. It's **not** built by Astro — Astro only touches
+`website/src` and copies `website/public`. The clips are **scripted reenactments**: the harness
+plays a canned agent transcript while applying the *real* DOM effects to a real buggy app;
+Playwright records the viewport, ffmpeg encodes to `website/public/demo-*.{mp4,webm,gif}`.
+
+- Edit the scripts in `src/timelines.ts`; the buggy apps are in `src/demos/`.
+- Regenerate: `pnpm --filter @feedthrough/demos record && … encode`, then rebuild the website so
+  the static build picks up the new files. Committed output lives in `website/public/`.
+- Shown on the site via `website/src/components/Demos.astro` (tabbed video section after the Hero).
+- Full detail (timing/sizing knobs, the white-frame trim) is in `website/demos/README.md`.
 
 ### examples/react-app
 

@@ -1,0 +1,133 @@
+---
+const demos = [
+  { id: "list", tab: "Off-by-one bug", line: "“Clicking ticks the wrong box.”" },
+  { id: "button", tab: "Button overflow", line: "“The text on this button doesn’t fit.”" },
+];
+---
+
+<section id="demo">
+  <div class="container">
+    <p class="section-label">Demo</p>
+    <h2>See it in action</h2>
+    <p class="section-sub">
+      Describe a bug in plain language. The agent reproduces it in the running page, finds the
+      cause, and fixes it — over MCP, without ever leaving the chat.
+    </p>
+
+    <div class="demo fade">
+      <div class="tabs" role="tablist">
+        {
+          demos.map((d, i) => (
+            <button
+              class={`tab ${i === 0 ? "active" : ""}`}
+              role="tab"
+              data-demo={d.id}
+              aria-selected={i === 0 ? "true" : "false"}
+            >
+              {d.tab}
+            </button>
+          ))
+        }
+      </div>
+
+      {
+        demos.map((d, i) => (
+          <figure class={`frame ${i === 0 ? "active" : ""}`} data-frame={d.id}>
+            <figcaption>{d.line}</figcaption>
+            <video
+              data-vid={d.id}
+              muted
+              loop
+              playsinline
+              preload="metadata"
+              autoplay={i === 0}
+            >
+              <source src={`/demo-${d.id}.webm`} type="video/webm" />
+              <source src={`/demo-${d.id}.mp4`} type="video/mp4" />
+            </video>
+          </figure>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<script>
+  const section = document.getElementById("demo");
+  if (section) {
+    const tabs = Array.from(section.querySelectorAll<HTMLButtonElement>(".tab"));
+    const frames = Array.from(section.querySelectorAll<HTMLElement>(".frame"));
+    const videos = Array.from(section.querySelectorAll<HTMLVideoElement>("video"));
+
+    function activate(id: string) {
+      for (const t of tabs) {
+        const on = t.dataset.demo === id;
+        t.classList.toggle("active", on);
+        t.setAttribute("aria-selected", on ? "true" : "false");
+      }
+      for (const f of frames) f.classList.toggle("active", f.dataset.frame === id);
+      for (const v of videos) {
+        if (v.dataset.vid === id) {
+          v.currentTime = 0;
+          void v.play().catch(() => {});
+        } else {
+          v.pause();
+        }
+      }
+    }
+
+    for (const t of tabs) {
+      t.addEventListener("click", () => activate(t.dataset.demo!));
+    }
+  }
+</script>
+
+<style>
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .tab {
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .tab:hover {
+    color: var(--text);
+    border-color: var(--text-dim);
+  }
+  .tab.active {
+    color: var(--accent);
+    border-color: rgba(34, 211, 238, 0.4);
+    background: var(--accent-soft);
+  }
+
+  .frame {
+    display: none;
+  }
+  .frame.active {
+    display: block;
+  }
+  .frame figcaption {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+  .frame video {
+    display: block;
+    width: 100%;
+    max-width: 800px; /* intrinsic capture width — don't upscale */
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-surface);
+  }
+</style>
