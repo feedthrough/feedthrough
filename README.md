@@ -318,21 +318,26 @@ Requires Node.js ≥ 22 and pnpm.
 
 ## Releasing
 
-All packages are versioned together. To cut a release:
+Packages are versioned **independently** — bump only the package(s) you actually changed and leave
+the rest alone. Publishing to npm is handled by CI: the `Publish to npm` workflow runs on every
+published GitHub Release and publishes only the packages whose `name@version` isn't on npm yet,
+skipping the ones already published (via OIDC trusted publishing, no tokens).
+
+To cut a release:
 
 ```bash
-# 1. Bump all packages to the new version
-pnpm -r exec npm version 0.2.0 --no-git-tag-version
-git add packages/*/package.json
-git commit -m "Release 0.2.0"
+# 1. Bump the changed package(s) only
+pnpm --filter @feedthrough/mcp exec npm version 0.1.1 --no-git-tag-version
+git add packages/mcp/package.json
+git commit -m "Release @feedthrough/mcp 0.1.1"
 git push
 
-# 2. Publish to npm (run from the repo root, requires npm login)
-pnpm -r --filter './packages/*' publish
-
-# 3. Tag and create a GitHub release
-git tag v0.2.0 && git push origin v0.2.0
+# 2. Create a GitHub Release (this triggers the publish workflow)
+gh release create v0.1.1 --title "v0.1.1" --notes "..."
 ```
+
+The workflow then builds all packages and publishes only the newly bumped ones. Mark the release
+as a pre-release to skip publishing.
 
 ---
 
