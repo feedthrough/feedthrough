@@ -1,0 +1,29 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.feedthrough/feedthrough",
+  "description": "In-browser debug bridge exposed as MCP tools. Injects into your running web app so an agent can read the DOM, console logs, and network requests, and click/fill/inspect the page. Works in any browser.",
+  "repository": {
+    "url": "https://github.com/feedthrough/feedthrough",
+    "source": "github"
+  },
+  "version": "0.1.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@feedthrough/mcp",
+      "version": "0.1.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "description": "Port the bridge WebSocket server listens on (defaults to 8765).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false,
+          "name": "FEEDTHROUGH_PORT"
+        }
+      ]
+    }
+  ]
+}

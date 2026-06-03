@@ -1,0 +1,16 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required: []
+    properties:
+      port:
+        type: number
+        default: 8765
+        description: Port the in-browser bridge WebSocket server listens on. The
+          browser bridge connects to this port over a local WebSocket.
+  commandFunction:
+    |-
+    (config) => ({ command: 'npx', args: ['-y', '@feedthrough/mcp'], env: config.port ? { FEEDTHROUGH_PORT: String(config.port) } : {} })
+  exampleConfig:
+    port: 8765
