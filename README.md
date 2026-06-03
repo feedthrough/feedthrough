@@ -328,7 +328,9 @@ To cut a release:
 ```bash
 # 1. Bump the changed package(s) only
 pnpm --filter @feedthrough/mcp exec npm version 0.1.1 --no-git-tag-version
-git add packages/mcp/package.json
+# When bumping @feedthrough/mcp, also bump the version (and packages[].version) in
+# packages/mcp/server.json to match — the MCP registry validates them against npm.
+git add packages/mcp/package.json packages/mcp/server.json
 git commit -m "Release @feedthrough/mcp 0.1.1"
 git push
 
@@ -336,8 +338,10 @@ git push
 gh release create v0.1.1 --title "v0.1.1" --notes "..."
 ```
 
-The workflow then builds all packages and publishes only the newly bumped ones. Mark the release
-as a pre-release to skip publishing.
+The workflow builds all packages and publishes only the newly bumped ones. When `@feedthrough/mcp`
+itself is published, the workflow also publishes it to the [official MCP registry](https://registry.modelcontextprotocol.io)
+(`io.github.feedthrough/feedthrough`) via GitHub OIDC — no extra step. Mark the release as a
+pre-release to skip publishing.
 
 ---
 
