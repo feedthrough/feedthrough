@@ -168,8 +168,11 @@ Where other things live: per-adapter install/usage is in each `packages/*/README
 landing-page copy is in `website/src/components/*.astro`; long-term plans and decisions are in
 the session auto-memory, not the repo.
 
-WebSocket server binds to `127.0.0.1` only and validates the `Origin` header (localhost origins
-only) — v1 is explicitly local-only.
+WebSocket server binds to `127.0.0.1` only and validates the `Origin` header — loopback origins
+plus any host matching an allowed suffix (default `.test`; override via
+`FEEDTHROUGH_ALLOWED_HOST_SUFFIXES`) are accepted, everything else is rejected. v1 is explicitly
+local-only (a `.test` origin only exists on a locally-resolving host, so this widens which local
+origins connect, not network reach).
 
 ## Session progress
 
