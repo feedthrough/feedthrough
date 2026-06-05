@@ -114,3 +114,26 @@ test("FEEDTHROUGH_ALLOWED_HOST_SUFFIXES replaces the default suffix list", async
     }
   }
 });
+
+test("a suffix without a leading dot is normalized to a boundary match", async () => {
+  const original = process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"];
+  // No leading dot: must not match an arbitrary substring of the hostname.
+  process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"] = "test";
+  const port = 8774;
+  const client = new BridgeClient(port);
+  await waitUntilReady(port);
+
+  try {
+    // A real subdomain under the suffix still connects.
+    assert.equal(await tryConnect(port, "https://app.test"), true);
+    // "mytest" ends with "test" but not ".test", so it must be rejected.
+    assert.equal(await tryConnect(port, "https://mytest"), false);
+  } finally {
+    await client.close();
+    if (original === undefined) {
+      delete process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"];
+    } else {
+      process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"] = original;
+    }
+  }
+});
