@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.feedthrough/feedthrough",
-  "description": "In-browser debug bridge exposed as MCP tools. Injects into your running web app so an agent can read the DOM, console logs, and network requests, and click/fill/inspect the page. Works in any browser.",
+  "description": "Debug bridge inside your web app: an agent reads the DOM, console and network. Any browser.",
   "repository": {
     "url": "https://github.com/feedthrough/feedthrough",
     "source": "github"
