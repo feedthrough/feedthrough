@@ -6,6 +6,7 @@ on:
 
 permissions:
   id-token: write
+  contents: read
 
 jobs:
   publish:
@@ -25,6 +26,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter './packages/*' build
       - name: Publish changed packages
+        id: npm
         run: |
           for pkg in packages/*/; do
             name=$(node -p "require('./${pkg}package.json').name")
@@ -34,5 +36,23 @@ jobs:
             else
               echo "publish  ${name}@${version}"
               pnpm --filter "${name}" publish --no-git-checks
+              if [ "${name}" = "@feedthrough/mcp" ]; then
+                echo "mcp_published=true" >> "$GITHUB_OUTPUT"
+              fi
             fi
           done
+
+      # Publish @feedthrough/mcp to the official MCP registry, but only when a new
+      # version of it was actually published above. server.json's version is kept in
+      # sync with package.json manually.
+      - name: Install mcp-publisher
+        if: steps.npm.outputs.mcp_published == 'true'
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Publish to MCP registry
+        if: steps.npm.outputs.mcp_published == 'true'
+        working-directory: packages/mcp
+        run: |
+          "$GITHUB_WORKSPACE/mcp-publisher" login github-oidc
+          "$GITHUB_WORKSPACE/mcp-publisher" publish

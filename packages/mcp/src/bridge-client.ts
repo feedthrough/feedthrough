@@ -58,10 +58,15 @@ const DEFAULT_ALLOWED_HOST_SUFFIXES = [".test"];
 // Non-loopback host suffixes that may connect, defaulting to .test. Override
 // with FEEDTHROUGH_ALLOWED_HOST_SUFFIXES (comma-separated); setting it replaces
 // the defaults, so include ".test" to keep it (e.g. ".test,.local,.localhost").
+// A leading dot is added if missing, so "test" never matches "mytest".
 function allowedHostSuffixes(): string[] {
   const fromEnv = process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"];
   if (fromEnv === undefined) return DEFAULT_ALLOWED_HOST_SUFFIXES;
-  return fromEnv.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
+  return fromEnv
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+    .map((s) => (s.startsWith(".") ? s : `.${s}`));
 }
 
 // An origin is allowed when its hostname is loopback or ends with a configured
