@@ -1,17 +1,17 @@
 /**
- * Unit tests for BridgeClient startup-error handling.
+ * Unit tests for the real BridgeClient.
  *
  * The Playwright bridge-protocol spec exercises the wire protocol against a
- * stand-in server, so it never instantiates the real BridgeClient. This is the
- * one path that needs the real class: when the WebSocket server fails to bind
- * (port already in use, etc.), every tool must surface a clear error instead of
- * the process crashing on an unhandled 'error' event.
+ * stand-in server, so it never instantiates the real BridgeClient. Two paths
+ * need the real class: the startup-error handling (a failed bind must surface a
+ * clear error instead of crashing on an unhandled 'error' event), and the
+ * origin allow-list enforced by the WebSocket server's verifyClient.
  *
  * Run with `node --test` (Node 22+ strips the TS types natively).
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 import { BridgeClient } from "../src/bridge-client.ts";
 
 const PORT = 8771;
@@ -21,6 +21,30 @@ async function waitForStartupError(client: BridgeClient, timeout = 1000): Promis
   const deadline = Date.now() + timeout;
   while (client.startupError === null) {
     if (Date.now() > deadline) throw new Error("timed out waiting for startupError");
+    await new Promise((r) => setTimeout(r, 10));
+  }
+}
+
+/** Open one connection with the given Origin; resolve whether the server accepted it. */
+function tryConnect(port: number, origin: string, timeout = 1000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const ws = new WebSocket(`ws://127.0.0.1:${port}`, { origin });
+    const finish = (accepted: boolean) => {
+      clearTimeout(timer);
+      ws.terminate();
+      resolve(accepted);
+    };
+    const timer = setTimeout(() => finish(false), timeout);
+    ws.on("open", () => finish(true));
+    ws.on("error", () => finish(false));
+  });
+}
+
+/** Resolve once the bridge is accepting connections (loopback is always allowed). */
+async function waitUntilReady(port: number, timeout = 1000): Promise<void> {
+  const deadline = Date.now() + timeout;
+  while (!(await tryConnect(port, "http://localhost"))) {
+    if (Date.now() > deadline) throw new Error("bridge did not start accepting connections");
     await new Promise((r) => setTimeout(r, 10));
   }
 }
@@ -49,4 +73,44 @@ test("a failed bind surfaces a startup error through every tool path", async () 
 
   await client.close();
   await new Promise<void>((resolve) => blocker.close(() => resolve()));
+});
+
+test("the bridge accepts loopback and default .test origins, rejects public ones", async () => {
+  const port = 8772;
+  const client = new BridgeClient(port);
+  await waitUntilReady(port);
+
+  // Loopback always connects.
+  assert.equal(await tryConnect(port, "http://localhost:5173"), true);
+  assert.equal(await tryConnect(port, "http://127.0.0.1:8080"), true);
+  // .test is allowed by default (e.g. Laravel Valet's myapp.test).
+  assert.equal(await tryConnect(port, "https://myapp.test"), true);
+  // A public origin with no allowed suffix is rejected.
+  assert.equal(await tryConnect(port, "https://example.com"), false);
+
+  await client.close();
+});
+
+test("FEEDTHROUGH_ALLOWED_HOST_SUFFIXES replaces the default suffix list", async () => {
+  const original = process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"];
+  process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"] = ".local";
+  const port = 8773;
+  const client = new BridgeClient(port);
+  await waitUntilReady(port);
+
+  try {
+    // The configured suffix connects.
+    assert.equal(await tryConnect(port, "https://myapp.local"), true);
+    // Setting the env var replaces the defaults, so .test no longer applies.
+    assert.equal(await tryConnect(port, "https://myapp.test"), false);
+    // Loopback is always allowed, regardless of the suffix list.
+    assert.equal(await tryConnect(port, "http://localhost"), true);
+  } finally {
+    await client.close();
+    if (original === undefined) {
+      delete process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"];
+    } else {
+      process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"] = original;
+    }
+  }
 });

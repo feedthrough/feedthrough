@@ -17,6 +17,23 @@ node packages/mcp/dist/index.js
 
 Set `FEEDTHROUGH_PORT` to override the default WebSocket port (8765).
 
+### Allowed origins
+
+The bridge WebSocket only accepts connections whose page origin is loopback
+(`localhost`, `127.0.0.1`, `::1`) or ends with an allowed host suffix. The
+default suffix list is `.test`, so apps served on local dev domains — e.g.
+Laravel Valet's `myapp.test` — connect out of the box.
+
+Override the suffix list with `FEEDTHROUGH_ALLOWED_HOST_SUFFIXES`
+(comma-separated). Setting it **replaces** the defaults, so re-include `.test`
+if you still want it:
+
+    FEEDTHROUGH_ALLOWED_HOST_SUFFIXES=".test,.local,.localhost"
+
+This only widens which page origins may connect; the server still binds to
+`127.0.0.1` only. Set it to empty (`FEEDTHROUGH_ALLOWED_HOST_SUFFIXES=`) for
+loopback-only.
+
 ## MCP client config
 
 Add to `.claude/settings.json` or `~/.claude.json`:

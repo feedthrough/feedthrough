@@ -50,6 +50,33 @@ export interface TabInfo {
   connectedAt: number;
 }
 
+// Loopback hostnames that may always connect; .test is an RFC 6761 reserved
+// dev TLD (Laravel Valet etc.) and is allowed by default.
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+const DEFAULT_ALLOWED_HOST_SUFFIXES = [".test"];
+
+// Non-loopback host suffixes that may connect, defaulting to .test. Override
+// with FEEDTHROUGH_ALLOWED_HOST_SUFFIXES (comma-separated); setting it replaces
+// the defaults, so include ".test" to keep it (e.g. ".test,.local,.localhost").
+function allowedHostSuffixes(): string[] {
+  const fromEnv = process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"];
+  if (fromEnv === undefined) return DEFAULT_ALLOWED_HOST_SUFFIXES;
+  return fromEnv.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
+}
+
+// An origin is allowed when its hostname is loopback or ends with a configured
+// suffix. The match is host-only; a malformed/absent origin is rejected.
+function isAllowedOrigin(origin: string | undefined, suffixes: string[]): boolean {
+  if (origin === undefined) return false;
+  try {
+    const { hostname } = new URL(origin);
+    if (LOOPBACK_HOSTS.has(hostname)) return true;
+    return suffixes.some((suffix) => hostname.endsWith(suffix));
+  } catch {
+    return false;
+  }
+}
+
 export class BridgeClient {
   private readonly wss: WebSocketServer;
   private readonly connections = new Map<string, Connection>();
@@ -59,17 +86,12 @@ export class BridgeClient {
   startupError: string | null = null;
 
   constructor(port = 8765) {
+    const suffixes = allowedHostSuffixes();
+
     this.wss = new WebSocketServer({
       port,
       host: "127.0.0.1",
-      verifyClient: ({ origin }: { origin: string }) => {
-        try {
-          const { hostname } = new URL(origin);
-          return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
-        } catch {
-          return false;
-        }
-      },
+      verifyClient: ({ origin }: { origin: string }) => isAllowedOrigin(origin, suffixes),
     });
 
     this.wss.on("listening", () => { this.bound = true; });
