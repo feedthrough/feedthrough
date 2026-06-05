@@ -293,7 +293,12 @@ v1 is local-only. Two guards enforce this:
 - **Localhost binding** — the WebSocket server binds to `127.0.0.1`, so it is not reachable
   from other machines on the network.
 - **Origin validation** — each incoming WebSocket connection is checked against its `Origin` header.
-  Connections from any origin other than `localhost` or `127.0.0.1` are rejected.
+  Loopback origins (`localhost`, `127.0.0.1`, `::1`) are always accepted, as is any host ending
+  with an allowed suffix (default `.test`, so local dev domains like Laravel Valet's `myapp.test`
+  connect out of the box). Override the suffix list with `FEEDTHROUGH_ALLOWED_HOST_SUFFIXES`
+  (comma-separated; replaces the default — set it empty for loopback-only). Any other origin is
+  rejected. A `.test` origin can only be presented by a page actually served from a `.test` host,
+  which resolves locally, so this widens *which local origins* connect, not network reach.
 
 ### What gets captured
 
