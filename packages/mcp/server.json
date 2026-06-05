@@ -6,12 +6,12 @@
     "url": "https://github.com/feedthrough/feedthrough",
     "source": "github"
   },
-  "version": "0.1.1",
+  "version": "0.2.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@feedthrough/mcp",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "transport": {
         "type": "stdio"
       },
@@ -22,6 +22,13 @@
           "format": "string",
           "isSecret": false,
           "name": "FEEDTHROUGH_PORT"
+        },
+        {
+          "description": "Comma-separated non-loopback host suffixes allowed to connect (defaults to .test). Setting it replaces the default, so include .test to keep it.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false,
+          "name": "FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"
         }
       ]
     }

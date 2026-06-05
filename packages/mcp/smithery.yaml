@@ -9,8 +9,14 @@ startCommand:
         default: 8765
         description: Port the in-browser bridge WebSocket server listens on. The
           browser bridge connects to this port over a local WebSocket.
+      allowedHostSuffixes:
+        type: string
+        description: Comma-separated non-loopback host suffixes allowed to connect
+          (defaults to .test). Setting it replaces the default, so include .test
+          to keep it.
   commandFunction:
     |-
-    (config) => ({ command: 'npx', args: ['-y', '@feedthrough/mcp'], env: config.port ? { FEEDTHROUGH_PORT: String(config.port) } : {} })
+    (config) => ({ command: 'npx', args: ['-y', '@feedthrough/mcp'], env: { ...(config.port ? { FEEDTHROUGH_PORT: String(config.port) } : {}), ...(config.allowedHostSuffixes ? { FEEDTHROUGH_ALLOWED_HOST_SUFFIXES: config.allowedHostSuffixes } : {}) } })
   exampleConfig:
     port: 8765
+    allowedHostSuffixes: .test
