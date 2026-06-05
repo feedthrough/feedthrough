@@ -3,6 +3,7 @@ name: Publish to npm
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -26,7 +27,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter './packages/*' build
       - name: Publish changed packages
-        id: npm
         run: |
           for pkg in packages/*/; do
             name=$(node -p "require('./${pkg}package.json').name")
@@ -36,22 +36,36 @@ jobs:
             else
               echo "publish  ${name}@${version}"
               pnpm --filter "${name}" publish --no-git-checks
-              if [ "${name}" = "@feedthrough/mcp" ]; then
-                echo "mcp_published=true" >> "$GITHUB_OUTPUT"
-              fi
             fi
           done
 
-      # Publish @feedthrough/mcp to the official MCP registry, but only when a new
-      # version of it was actually published above. server.json's version is kept in
-      # sync with package.json manually.
+      # Publish @feedthrough/mcp to the official MCP registry whenever the registry
+      # is missing the version currently in package.json. Gating on the registry
+      # (rather than on "did npm publish this run") means a failed registry publish
+      # can be retried by re-running this workflow, with no version bump needed.
+      # server.json's version is kept in sync with package.json manually.
+      - name: Check whether the MCP registry has the current version
+        id: registry
+        run: |
+          version=$(node -p "require('./packages/mcp/package.json').version")
+          count=$(curl -s "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.feedthrough/feedthrough" \
+            | jq -r --arg v "$version" '[.servers[].server | select(.version == $v)] | length' 2>/dev/null || echo 0)
+          [ -z "$count" ] && count=0
+          if [ "$count" -gt 0 ]; then
+            echo "registry already has @feedthrough/mcp ${version}"
+            echo "needs_publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "registry missing @feedthrough/mcp ${version}, will publish"
+            echo "needs_publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install mcp-publisher
-        if: steps.npm.outputs.mcp_published == 'true'
+        if: steps.registry.outputs.needs_publish == 'true'
         run: |
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
 
       - name: Publish to MCP registry
-        if: steps.npm.outputs.mcp_published == 'true'
+        if: steps.registry.outputs.needs_publish == 'true'
         working-directory: packages/mcp
         run: |
           "$GITHUB_WORKSPACE/mcp-publisher" login github-oidc

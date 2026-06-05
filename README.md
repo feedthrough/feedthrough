@@ -343,10 +343,11 @@ git push
 gh release create v0.1.1 --title "v0.1.1" --notes "..."
 ```
 
-The workflow builds all packages and publishes only the newly bumped ones. When `@feedthrough/mcp`
-itself is published, the workflow also publishes it to the [official MCP registry](https://registry.modelcontextprotocol.io)
-(`io.github.feedthrough/feedthrough`) via GitHub OIDC — no extra step. Mark the release as a
-pre-release to skip publishing.
+The workflow builds all packages and publishes only the newly bumped ones. It also publishes
+`@feedthrough/mcp` to the [official MCP registry](https://registry.modelcontextprotocol.io)
+(`io.github.feedthrough/feedthrough`) via GitHub OIDC whenever the registry is missing the current
+version, so a failed registry publish can be retried by re-running the workflow (Actions tab,
+"Run workflow") with no version bump. Mark a release as a pre-release to skip publishing.
 
 ---
 
