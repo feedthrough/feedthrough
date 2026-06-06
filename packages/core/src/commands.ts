@@ -283,6 +283,10 @@ function ancestorChain(el: Element): string {
 // is distinct from inViewport (viewport-level) and from occlusion (z-order).
 // Reports the nearest clipping ancestor and which edges are cut. Best-effort: a
 // position:fixed element escapes overflow clipping, so it's skipped.
+// Cap ancestor walks so a pathologically deep DOM can't make inspect_element do
+// unbounded synchronous work — real hiding/clipping wrappers are always near.
+const MAX_ANCESTOR_WALK = 50;
+
 function clippedByAncestor(
   el: Element,
   rect: DOMRect,
@@ -290,7 +294,8 @@ function clippedByAncestor(
 ): { by: string; edges: string[] } | undefined {
   if (cs.position === "fixed") return undefined;
   const tol = 1;
-  for (let node = el.parentElement; node; node = node.parentElement) {
+  let node = el.parentElement;
+  for (let depth = 0; node && depth < MAX_ANCESTOR_WALK; node = node.parentElement, depth++) {
     const acs = window.getComputedStyle(node);
     const clipsX = acs.overflowX !== "visible";
     const clipsY = acs.overflowY !== "visible";
@@ -362,7 +367,8 @@ function effectiveVisibility(
 ): { visible: true } | { visible: false; reason: string } {
   if (cs.display === "none") return { visible: false, reason: "display:none" };
 
-  for (let node = el.parentElement; node; node = node.parentElement) {
+  let node = el.parentElement;
+  for (let depth = 0; node && depth < MAX_ANCESTOR_WALK; node = node.parentElement, depth++) {
     const acs = window.getComputedStyle(node);
     if (acs.display === "none")
       return { visible: false, reason: `ancestor ${refString(node)} display:none` };
@@ -432,9 +438,11 @@ function implicitRole(el: Element): string | null {
     case "main":
       return "main";
     case "header":
-      return "banner";
+      // banner/contentinfo only apply to a top-level header/footer, not one
+      // scoped inside a sectioning element.
+      return el.closest("article, aside, main, nav, section") ? null : "banner";
     case "footer":
-      return "contentinfo";
+      return el.closest("article, aside, main, nav, section") ? null : "contentinfo";
     case "aside":
       return "complementary";
     case "section":
@@ -532,7 +540,10 @@ function accessibilityInfo(el: Element): Record<string, unknown> | undefined {
   if (el.getAttribute("aria-hidden") === "true") states.hidden = true;
   if ("disabled" in el && (el as { disabled?: boolean }).disabled) states.disabled = true;
   const tabindex = el.getAttribute("tabindex");
-  if (tabindex !== null) states.tabindex = Number(tabindex);
+  if (tabindex !== null) {
+    const n = Number(tabindex);
+    states.tabindex = Number.isNaN(n) ? tabindex : n;
+  }
   if (Object.keys(states).length > 0) a11y.states = states;
 
   return Object.keys(a11y).length > 0 ? a11y : undefined;
