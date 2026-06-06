@@ -3,9 +3,10 @@ import type { ChatMessage } from "./types";
 
 export function ChatPanel({ messages }: { messages: ChatMessage[] }) {
   const endRef = useRef<HTMLDivElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-run to scroll to the newest message
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, []);
+  }, [messages]);
 
   return (
     <aside className="chat">

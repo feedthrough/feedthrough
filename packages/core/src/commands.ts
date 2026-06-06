@@ -235,13 +235,18 @@ function overflowInfo(el: Element): Record<string, unknown> | undefined {
 
 // A compact CSS-ish reference for an element, e.g. "div#app.modal.open" —
 // enough structural context to identify the culprit without a full get_html.
+// Classes are capped (utility-CSS apps can carry dozens) to keep the payload
+// low-token; a trailing "…" marks the truncation.
 function refString(el: Element): string {
   const tag = el.tagName.toLowerCase();
   const id = el.id ? `#${el.id}` : "";
-  const classes = Array.from(el.classList)
+  const all = Array.from(el.classList);
+  const classes = all
+    .slice(0, 3)
     .map(c => `.${c}`)
     .join("");
-  return tag + id + classes;
+  const more = all.length > 3 ? "…" : "";
+  return tag + id + classes + more;
 }
 
 // A single compact segment for the ancestor chain: tag + #id, or tag + first

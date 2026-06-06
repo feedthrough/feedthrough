@@ -94,7 +94,8 @@ class TestBridgeServer {
   async command<T = unknown>(action: string, params: Record<string, unknown> = {}): Promise<T> {
     const id = `test-cmd-${++this.cmdId}`;
     const result = this.waitFor(m => m.type === "result" && m.commandId === id);
-    this.socket?.send(JSON.stringify({ type: "command", id, action, ...params }));
+    if (!this.socket) throw new Error("no browser connection established");
+    this.socket.send(JSON.stringify({ type: "command", id, action, ...params }));
     const res = await result;
     if (!res.ok) throw new Error(`command ${action} failed: ${res.error}`);
     return res.value as T;
