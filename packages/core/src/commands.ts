@@ -349,7 +349,7 @@ function occlusionInfo(
     occludedBy: {
       tag: top.tagName.toLowerCase(),
       id: top.id || null,
-      classes: Array.from(top.classList),
+      classes: Array.from(top.classList).slice(0, 3),
     },
   };
 }
