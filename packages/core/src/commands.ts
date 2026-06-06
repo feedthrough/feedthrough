@@ -133,6 +133,9 @@ function inspectEl(selector: string, properties?: string[]) {
     styles: pickStyles(cs, DEFAULT_STYLE_PROPS),
   };
 
+  const overflow = overflowInfo(el);
+  if (overflow) result.overflow = overflow;
+
   const state = elementState(el);
   if (state) result.state = state;
 
@@ -143,6 +146,17 @@ function inspectEl(selector: string, properties?: string[]) {
   }
 
   return result;
+}
+
+// Detect content larger than the element's box — the standard signal for
+// clipped/truncated labels or content spilling out of a container. Reported only
+// when something actually overflows (omitted otherwise), to keep the payload lean.
+function overflowInfo(el: Element): Record<string, unknown> | undefined {
+  const { scrollWidth, clientWidth, scrollHeight, clientHeight } = el;
+  const x = scrollWidth > clientWidth;
+  const y = scrollHeight > clientHeight;
+  if (!x && !y) return undefined;
+  return { x, y, scrollWidth, clientWidth, scrollHeight, clientHeight };
 }
 
 function pickStyles(cs: CSSStyleDeclaration, props: string[]): Record<string, string> {

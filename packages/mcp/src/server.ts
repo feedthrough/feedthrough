@@ -130,8 +130,9 @@ export async function startServer(port = 8765): Promise<void> {
     description:
       "Return full details about a single element: tag, id, classes, all attributes, text content, " +
       "bounding rect (top/right/bottom/left/width/height + page scroll and an inViewport flag), a " +
-      "curated set of computed styles (layout, box model, typography, positioning, flex/grid), and " +
-      "live form state where applicable (an input's current value, checked, disabled, etc.). " +
+      "curated set of computed styles (layout, box model, typography, positioning, flex/grid), an " +
+      "'overflow' block when content is clipped/overflowing (scroll vs client size + per-axis x/y " +
+      "flags), and live form state where applicable (an input's current value, checked, disabled, etc.). " +
       "Pass 'properties' to additionally read any specific computed CSS properties by name — they " +
       "come back under 'requested'. Use this to understand why an element looks wrong or isn't " +
       "behaving as expected. Note: addEventListener-registered event handlers cannot be read from " +
