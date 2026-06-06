@@ -380,6 +380,7 @@ test("console output is intercepted and retrievable", async () => {
   const logs = await server.poll<ConsoleEntry[]>("get_console_logs", {}, l =>
     l.some(e => JSON.stringify(e.args).includes("page view recorded")),
   );
+  // biome-ignore lint/style/noNonNullAssertion: the log entry is guaranteed present in this scenario
   const entry = logs.find(e => JSON.stringify(e.args).includes("page view recorded"))!;
   expect(entry.level).toBe("log");
 });
@@ -402,6 +403,7 @@ test("a rejected fetch is recorded with an error field", async ({ page }) => {
   const requests = await server.poll<NetEntry[]>("get_network_requests", { filter: "never" }, r =>
     r.some(req => req.url.includes("/api/never") && typeof req.error === "string"),
   );
+  // biome-ignore lint/style/noNonNullAssertion: the request is guaranteed present in this scenario
   const failed = requests.find(r => r.url.includes("/api/never"))!;
   expect(String(failed.error).toLowerCase()).toMatch(/abort/);
 });
@@ -427,6 +429,7 @@ test("request and response bodies + headers are captured", async ({ page }) => {
   const reqs = await server.poll<NetEntry[]>("get_network_requests", { filter: "echo" }, r =>
     r.some(req => req.url.includes("/api/echo") && typeof req.responseBody === "string"),
   );
+  // biome-ignore lint/style/noNonNullAssertion: the request is guaranteed present in this scenario
   const req = reqs.find(r => r.url.includes("/api/echo"))!;
   expect(req.method).toBe("POST");
   expect(req.requestBody).toBe(JSON.stringify({ ping: "pong" }));
@@ -523,6 +526,7 @@ test("console.time/timeEnd reports an elapsed duration", async ({ page }) => {
   const logs = await server.poll<ConsoleEntry[]>("get_console_logs", {}, l =>
     l.some(e => e.method === "timeEnd"),
   );
+  // biome-ignore lint/style/noNonNullAssertion: the log entry is guaranteed present in this scenario
   const timed = logs.find(e => e.method === "timeEnd")!;
   expect(String(timed.args[0])).toMatch(/^op: \d+(\.\d+)?ms$/);
 });
@@ -535,6 +539,7 @@ test("console.trace captures the call-site stack", async ({ page }) => {
   const logs = await server.poll<ConsoleEntry[]>("get_console_logs", {}, l =>
     l.some(e => e.method === "trace"),
   );
+  // biome-ignore lint/style/noNonNullAssertion: the log entry is guaranteed present in this scenario
   const traced = logs.find(e => e.method === "trace")!;
   expect(JSON.stringify(traced.args)).toContain("from the test");
   expect(typeof traced.stack).toBe("string");
@@ -602,6 +607,7 @@ test("uncaught errors are captured", async ({ page }) => {
   const logs = await server.poll<ConsoleEntry[]>("get_console_logs", { levels: ["error"] }, l =>
     l.some(e => e.method === "uncaught"),
   );
+  // biome-ignore lint/style/noNonNullAssertion: the log entry is guaranteed present in this scenario
   const u = logs.find(e => e.method === "uncaught")!;
   expect(JSON.stringify(u.args)).toContain("boom uncaught");
   expect(typeof u.stack).toBe("string");
@@ -615,6 +621,7 @@ test("unhandled promise rejections are captured", async ({ page }) => {
   const logs = await server.poll<ConsoleEntry[]>("get_console_logs", { levels: ["error"] }, l =>
     l.some(e => e.method === "unhandledrejection"),
   );
+  // biome-ignore lint/style/noNonNullAssertion: the log entry is guaranteed present in this scenario
   const r = logs.find(e => e.method === "unhandledrejection")!;
   expect(JSON.stringify(r.args)).toContain("boom rejected");
 });
@@ -646,6 +653,7 @@ test("since filter scopes logs + network to what happened after a point", async 
 
 test("press_key fires key handlers on the target element", async ({ page }) => {
   await page.evaluate(() => {
+    // biome-ignore lint/style/noNonNullAssertion: the element exists in the test fixture
     const input = document.getElementById("search-input")!;
     input.addEventListener("keydown", e => {
       if ((e as KeyboardEvent).key === "Enter") document.title = "ENTER_PRESSED";

@@ -11,6 +11,7 @@ const STD_LEVELS: LogLevel[] = ["log", "warn", "error", "info", "debug"];
 const MAX_LOGS = 1000;
 const MAX_ARG_CHARS = 10_000;
 
+// biome-ignore lint/suspicious/noExplicitAny: console methods accept and return arbitrary argument types
 type AnyFn = (...args: any[]) => any;
 
 export class ConsoleInterceptor {
@@ -201,6 +202,7 @@ export class ConsoleInterceptor {
       result = result.filter(m => JSON.stringify(m.args).toLowerCase().includes(needle));
     }
     if (opts.since !== undefined) {
+      // biome-ignore lint/style/noNonNullAssertion: inside the opts.since !== undefined guard above
       result = result.filter(m => m.ts >= opts.since!);
     }
     if (opts.limit !== undefined) {

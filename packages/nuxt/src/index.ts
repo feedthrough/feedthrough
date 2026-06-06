@@ -26,6 +26,7 @@ export default defineNuxtModule<BridgeOptions>({
   setup(options, nuxt) {
     if (!nuxt.options.dev) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: addVitePlugin parameter type does not match the plugin inferred type
     addVitePlugin(() => feedthrough(options) as any);
   },
 });

@@ -59,7 +59,9 @@ test("a failed bind surfaces a startup error through every tool path", async () 
   await waitForStartupError(client);
 
   // The message is actionable and mentions the port conflict.
+  // biome-ignore lint/style/noNonNullAssertion: startupError is set after the start failure asserted above
   assert.match(client.startupError!, /already in use/i);
+  // biome-ignore lint/style/noNonNullAssertion: startupError is set after the start failure asserted above
   assert.match(client.startupError!, new RegExp(String(PORT)));
 
   // connection_status reads startupError directly; connected must be false.
