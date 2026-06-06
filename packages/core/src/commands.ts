@@ -140,6 +140,12 @@ function inspectEl(selector: string, properties?: string[]) {
   result.visible = vis.visible;
   if (!vis.visible) result.hiddenReason = vis.reason;
 
+  const occ = occlusionInfo(el, rect);
+  if (occ) {
+    result.hittable = occ.hittable;
+    if (occ.occludedBy) result.occludedBy = occ.occludedBy;
+  }
+
   const state = elementState(el);
   if (state) result.state = state;
 
@@ -170,6 +176,29 @@ function refString(el: Element): string {
   const id = el.id ? `#${el.id}` : "";
   const classes = Array.from(el.classList).map(c => `.${c}`).join("");
   return tag + id + classes;
+}
+
+// Hit-test the element's center against document.elementFromPoint to detect
+// occlusion: the element can be present and in-viewport but covered by an overlay,
+// modal backdrop, sticky header, or have pointer-events:none, so an interaction
+// silently lands elsewhere. Returns undefined when the center is offscreen (can't
+// be tested). hittable is true when the topmost element is the element itself or a
+// descendant; otherwise occludedBy names the element actually on top.
+function occlusionInfo(
+  el: Element, rect: DOMRect,
+): { hittable: boolean; occludedBy?: Record<string, unknown> } | undefined {
+  if (rect.width === 0 || rect.height === 0) return undefined;
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  if (cx < 0 || cy < 0 || cx > window.innerWidth || cy > window.innerHeight) return undefined;
+
+  const top = document.elementFromPoint(cx, cy);
+  if (!top) return undefined;
+  if (top === el || el.contains(top)) return { hittable: true };
+  return {
+    hittable: false,
+    occludedBy: { tag: top.tagName.toLowerCase(), id: top.id || null, classes: Array.from(top.classList) },
+  };
 }
 
 // Effective visibility: is the element actually rendered to the user, accounting
