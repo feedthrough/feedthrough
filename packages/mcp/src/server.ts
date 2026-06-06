@@ -132,7 +132,9 @@ export async function startServer(port = 8765): Promise<void> {
       "bounding rect (top/right/bottom/left/width/height + page scroll and an inViewport flag), a " +
       "curated set of computed styles (layout, box model, typography, positioning, flex/grid), an " +
       "'overflow' block when content is clipped/overflowing (scroll vs client size + per-axis x/y " +
-      "flags), and live form state where applicable (an input's current value, checked, disabled, etc.). " +
+      "flags), an effective-visibility check ('visible' boolean, with a 'hiddenReason' such as " +
+      "'ancestor div#modal display:none' or 'opacity:0' when not visible, accounting for ancestors), " +
+      "and live form state where applicable (an input's current value, checked, disabled, etc.). " +
       "Pass 'properties' to additionally read any specific computed CSS properties by name — they " +
       "come back under 'requested'. Use this to understand why an element looks wrong or isn't " +
       "behaving as expected. Note: addEventListener-registered event handlers cannot be read from " +

@@ -136,6 +136,10 @@ function inspectEl(selector: string, properties?: string[]) {
   const overflow = overflowInfo(el);
   if (overflow) result.overflow = overflow;
 
+  const vis = effectiveVisibility(el, rect, cs);
+  result.visible = vis.visible;
+  if (!vis.visible) result.hiddenReason = vis.reason;
+
   const state = elementState(el);
   if (state) result.state = state;
 
@@ -157,6 +161,41 @@ function overflowInfo(el: Element): Record<string, unknown> | undefined {
   const y = scrollHeight > clientHeight;
   if (!x && !y) return undefined;
   return { x, y, scrollWidth, clientWidth, scrollHeight, clientHeight };
+}
+
+// A compact CSS-ish reference for an element, e.g. "div#app.modal.open" —
+// enough structural context to identify the culprit without a full get_html.
+function refString(el: Element): string {
+  const tag = el.tagName.toLowerCase();
+  const id = el.id ? `#${el.id}` : "";
+  const classes = Array.from(el.classList).map(c => `.${c}`).join("");
+  return tag + id + classes;
+}
+
+// Effective visibility: is the element actually rendered to the user, accounting
+// for ancestors? The element's own computed display/opacity/visibility can look
+// fine while a parent hides the whole subtree. Walks up to find the hiding cause.
+// Note: opacity and display:none on an ancestor hide the subtree regardless of
+// the child's own styles; visibility:hidden inherits but a child can override it,
+// so we rely on the element's own computed visibility for that one.
+function effectiveVisibility(
+  el: Element, rect: DOMRect, cs: CSSStyleDeclaration,
+): { visible: true } | { visible: false; reason: string } {
+  if (cs.display === "none") return { visible: false, reason: "display:none" };
+
+  for (let node = el.parentElement; node; node = node.parentElement) {
+    const acs = window.getComputedStyle(node);
+    if (acs.display === "none") return { visible: false, reason: `ancestor ${refString(node)} display:none` };
+    if (parseFloat(acs.opacity) === 0) return { visible: false, reason: `ancestor ${refString(node)} opacity:0` };
+    if (node.getAttribute("aria-hidden") === "true") return { visible: false, reason: `ancestor ${refString(node)} aria-hidden` };
+  }
+
+  if (cs.visibility === "hidden" || cs.visibility === "collapse") return { visible: false, reason: `visibility:${cs.visibility}` };
+  if (parseFloat(cs.opacity) === 0) return { visible: false, reason: "opacity:0" };
+  if (el.getAttribute("aria-hidden") === "true") return { visible: false, reason: "aria-hidden" };
+  if (rect.width === 0 || rect.height === 0) return { visible: false, reason: "zero-size" };
+
+  return { visible: true };
 }
 
 function pickStyles(cs: CSSStyleDeclaration, props: string[]): Record<string, string> {

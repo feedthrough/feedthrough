@@ -58,7 +58,7 @@ Add to `.claude/settings.json` or `~/.claude.json`:
 | `fill` | `selector: string`, `value: string` | Type into an input |
 | `hover` | `selector: string` | Fire mouseover/mouseenter |
 | `press_key` | `selector: string`, `key: string` | Dispatch a key press (Enter, Escape, Tab, arrows, or a character) |
-| `inspect_element` | `selector: string`, `properties?: string[]` | Full element details — tag, attributes, bounding rect + inViewport, curated computed styles, overflow info (clipped/overflowing content), live form state; `properties` reads extra CSS props by name |
+| `inspect_element` | `selector: string`, `properties?: string[]` | Full element details — tag, attributes, bounding rect + inViewport, curated computed styles, overflow info (clipped/overflowing content), effective visibility (`visible` + reason, accounting for ancestors), live form state; `properties` reads extra CSS props by name |
 | `query_dom` | `selector: string` | All matching elements, summarised |
 | `get_console_logs` | `limit?`, `levels?`, `match?`, `since?` | Console output across every method, plus uncaught errors & promise rejections; filter by levels/match/since |
 | `get_network_requests` | `filter?`, `since?` | Fetch + XHR with headers and request/response bodies (10 KB cap); narrow by filter or since |
