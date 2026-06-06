@@ -201,6 +201,63 @@ test("inspect_element returns styles, live form state, and requested props", asy
   expect(typeof info.requested?.["cursor"]).toBe("string");
 });
 
+test("inspect_element reports a11y, effective visibility, and hittability", async () => {
+  type Inspected = {
+    visible: boolean;
+    hiddenReason?: string;
+    hittable?: boolean;
+    a11y?: { role?: string; name?: string; states?: Record<string, unknown> };
+  };
+
+  // A plain, visible, unobstructed button: resolved role + accessible name,
+  // visible true, hittable true.
+  const btn = await server.command<Inspected>("inspect", { selector: "#record-view-btn" });
+  expect(btn.a11y?.role).toBe("button");
+  expect(btn.a11y?.name).toBe("Record View");
+  expect(btn.visible).toBe(true);
+  expect(btn.hittable).toBe(true);
+
+  // A text input resolves to the textbox role.
+  const input = await server.command<Inspected>("inspect", { selector: "#search-input" });
+  expect(input.a11y?.role).toBe("textbox");
+
+  // Hiding an ancestor makes the element not visible, and the reason names the
+  // cause walked up the tree.
+  await server.command("set_style", { selector: "#feed-section", properties: { display: "none" } });
+  const hidden = await server.command<Inspected>("inspect", { selector: "#refresh-btn" });
+  expect(hidden.visible).toBe(false);
+  expect(hidden.hiddenReason).toContain("display:none");
+  await server.command("reset_overrides");
+});
+
+test("inspect_element reports overflow and occlusion", async () => {
+  type Inspected = {
+    overflow?: { x: boolean; y: boolean; scrollWidth: number; clientWidth: number };
+    hittable?: boolean;
+    occludedBy?: { tag: string; id: string | null };
+  };
+
+  // Force horizontal overflow: a narrow, non-wrapping, clipped box whose text
+  // is wider than its content area.
+  await server.command("set_style", {
+    selector: "#feed-status",
+    properties: { width: "20px", "white-space": "nowrap", overflow: "hidden" },
+  });
+  const ov = await server.command<Inspected>("inspect", { selector: "#feed-status" });
+  expect(ov.overflow?.x).toBe(true);
+  expect(ov.overflow!.scrollWidth).toBeGreaterThan(ov.overflow!.clientWidth);
+  await server.command("reset_overrides");
+
+  // pointer-events:none makes the element non-hittable; the center-point
+  // hit-test lands on whatever is behind it. Use a top-of-page button so its
+  // center is reliably within the viewport.
+  await server.command("set_style", { selector: "#record-view-btn", properties: { "pointer-events": "none" } });
+  const occ = await server.command<Inspected>("inspect", { selector: "#record-view-btn" });
+  expect(occ.hittable).toBe(false);
+  expect(occ.occludedBy).toBeTruthy();
+  await server.command("reset_overrides");
+});
+
 test("set_style applies inline CSS live and returns a preview note", async () => {
   const res = await server.command<{ applied: Record<string, string>; note: string }>(
     "set_style",
