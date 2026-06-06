@@ -146,6 +146,9 @@ function inspectEl(selector: string, properties?: string[]) {
     if (occ.occludedBy) result.occludedBy = occ.occludedBy;
   }
 
+  const a11y = accessibilityInfo(el);
+  if (a11y) result.a11y = a11y;
+
   const state = elementState(el);
   if (state) result.state = state;
 
@@ -234,6 +237,105 @@ function pickStyles(cs: CSSStyleDeclaration, props: string[]): Record<string, st
     if (v) out[p] = v;
   }
   return out;
+}
+
+// Implicit ARIA role for common HTML tags, used when there's no explicit `role`
+// attribute. Best-effort: not the full HTML-AAM mapping, but covers the elements
+// agents reason about most. Some real roles are context-dependent (e.g. header is
+// only "banner" at the top level); we keep it simple.
+function implicitRole(el: Element): string | null {
+  const tag = el.tagName.toLowerCase();
+  switch (tag) {
+    case "a": case "area": return el.hasAttribute("href") ? "link" : null;
+    case "button": return "button";
+    case "input": {
+      const t = (el.getAttribute("type") || "text").toLowerCase();
+      const map: Record<string, string> = {
+        checkbox: "checkbox", radio: "radio", range: "slider", number: "spinbutton",
+        button: "button", submit: "button", reset: "button", image: "button",
+        search: "searchbox", email: "textbox", tel: "textbox", url: "textbox", text: "textbox",
+      };
+      return map[t] ?? (t === "hidden" ? null : "textbox");
+    }
+    case "select": return el.hasAttribute("multiple") ? "listbox" : "combobox";
+    case "textarea": return "textbox";
+    case "img": return el.getAttribute("alt") === "" ? "presentation" : "img";
+    case "nav": return "navigation";
+    case "main": return "main";
+    case "header": return "banner";
+    case "footer": return "contentinfo";
+    case "aside": return "complementary";
+    case "section": return "region";
+    case "article": return "article";
+    case "dialog": return "dialog";
+    case "form": return "form";
+    case "table": return "table";
+    case "ul": case "ol": return "list";
+    case "li": return "listitem";
+    case "h1": case "h2": case "h3": case "h4": case "h5": case "h6": return "heading";
+    default: return null;
+  }
+}
+
+// Best-effort accessible name: aria-labelledby targets, then aria-label, then an
+// associated/wrapping <label>, then title/alt/placeholder, then visible text. Not
+// the full accname algorithm, but enough for an agent to identify "the Submit
+// button" rather than juggling CSS selectors.
+function accessibleName(el: Element): string | undefined {
+  const labelledby = el.getAttribute("aria-labelledby");
+  if (labelledby) {
+    const txt = labelledby.split(/\s+/)
+      .map(id => document.getElementById(id)?.textContent?.trim())
+      .filter(Boolean).join(" ");
+    if (txt) return txt.slice(0, 200);
+  }
+  const label = el.getAttribute("aria-label")?.trim();
+  if (label) return label.slice(0, 200);
+
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
+    if (el.id) {
+      const forLabel = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
+      const txt = forLabel?.textContent?.trim();
+      if (txt) return txt.slice(0, 200);
+    }
+    const wrapping = el.closest("label")?.textContent?.trim();
+    if (wrapping) return wrapping.slice(0, 200);
+    if (el instanceof HTMLInputElement && el.placeholder) return el.placeholder.slice(0, 200);
+  }
+  if (el instanceof HTMLImageElement && el.alt) return el.alt.slice(0, 200);
+
+  const title = el.getAttribute("title")?.trim();
+  if (title) return title.slice(0, 200);
+
+  const text = el.textContent?.trim();
+  if (text) return text.slice(0, 200);
+  return undefined;
+}
+
+// Resolved accessibility info: role, accessible name, and key ARIA/control states.
+// This is how assistive tech (and increasingly agents) identify elements, and
+// missing/incorrect a11y is its own common bug class.
+function accessibilityInfo(el: Element): Record<string, unknown> | undefined {
+  const a11y: Record<string, unknown> = {};
+
+  const role = el.getAttribute("role") || implicitRole(el);
+  if (role) a11y.role = role;
+
+  const name = accessibleName(el);
+  if (name) a11y.name = name;
+
+  const states: Record<string, unknown> = {};
+  for (const attr of ["aria-expanded", "aria-checked", "aria-selected", "aria-pressed", "aria-current", "aria-disabled"]) {
+    const v = el.getAttribute(attr);
+    if (v !== null) states[attr.slice(5)] = v;
+  }
+  if (el.getAttribute("aria-hidden") === "true") states.hidden = true;
+  if ("disabled" in el && (el as { disabled?: boolean }).disabled) states.disabled = true;
+  const tabindex = el.getAttribute("tabindex");
+  if (tabindex !== null) states.tabindex = Number(tabindex);
+  if (Object.keys(states).length > 0) a11y.states = states;
+
+  return Object.keys(a11y).length > 0 ? a11y : undefined;
 }
 
 // Live form/control state that isn't visible in static attributes (e.g. an
