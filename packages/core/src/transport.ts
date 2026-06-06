@@ -20,15 +20,18 @@ export class Transport {
 
   connect(): void {
     if (this.destroyed) return;
-    this.ws = new WebSocket(this.url);
+    // Capture this specific socket so the handlers act on it even if connect()
+    // runs again (reconnect) and reassigns this.ws before this one opens.
+    const ws = new WebSocket(this.url);
+    this.ws = ws;
 
-    this.ws.onopen = () => {
+    ws.onopen = () => {
       this.onStatus(true);
-      for (const msg of this.queue) this.ws?.send(msg);
+      for (const msg of this.queue) ws.send(msg);
       this.queue = [];
     };
 
-    this.ws.onmessage = event => {
+    ws.onmessage = event => {
       try {
         this.onMessage(JSON.parse(event.data as string));
       } catch {
@@ -36,14 +39,14 @@ export class Transport {
       }
     };
 
-    this.ws.onclose = () => {
+    ws.onclose = () => {
       this.onStatus(false);
       if (!this.destroyed) {
         this.reconnectTimer = setTimeout(() => this.connect(), this.reconnectDelay);
       }
     };
 
-    this.ws.onerror = () => {
+    ws.onerror = () => {
       /* onclose fires immediately after */
     };
   }
