@@ -186,8 +186,13 @@ function inspectEl(selector: string, properties?: string[]) {
     styles: pickStyles(cs, DEFAULT_STYLE_PROPS),
   };
 
+  result.path = ancestorChain(el);
+
   const overflow = overflowInfo(el);
   if (overflow) result.overflow = overflow;
+
+  const clipped = clippedByAncestor(el, rect, cs);
+  if (clipped) result.clipped = clipped;
 
   const vis = effectiveVisibility(el, rect, cs);
   result.visible = vis.visible;
@@ -201,6 +206,9 @@ function inspectEl(selector: string, properties?: string[]) {
 
   const a11y = accessibilityInfo(el);
   if (a11y) result.a11y = a11y;
+
+  const pseudo = pseudoContent(el);
+  if (pseudo) result.pseudo = pseudo;
 
   const state = elementState(el);
   if (state) result.state = state;
@@ -234,6 +242,78 @@ function refString(el: Element): string {
     .map(c => `.${c}`)
     .join("");
   return tag + id + classes;
+}
+
+// A single compact segment for the ancestor chain: tag + #id, or tag + first
+// class, or just the tag. Kept lighter than refString so the path stays short.
+function chainRef(el: Element): string {
+  const tag = el.tagName.toLowerCase();
+  if (el.id) return `${tag}#${el.id}`;
+  const cls = el.classList[0];
+  return cls ? `${tag}.${cls}` : tag;
+}
+
+// A compact structural path from an ancestor down to the element, e.g.
+// "body > main > div#app > button.cta". Gives the agent context about where the
+// element lives without a full get_html. Capped in depth, with a leading "…" when
+// the chain is longer than the cap.
+function ancestorChain(el: Element): string {
+  const maxDepth = 6;
+  const parts: string[] = [];
+  let node: Element | null = el;
+  while (node) {
+    parts.unshift(chainRef(node));
+    node = node.parentElement;
+    if (parts.length >= maxDepth && node) {
+      parts.unshift("…");
+      break;
+    }
+  }
+  return parts.join(" > ");
+}
+
+// Detect when the element is cut off by an ancestor's clipping context
+// (overflow:hidden/scroll/auto/clip) even though the element itself renders fine —
+// e.g. a dropdown clipped by a panel, or content scrolled out of a container. This
+// is distinct from inViewport (viewport-level) and from occlusion (z-order).
+// Reports the nearest clipping ancestor and which edges are cut. Best-effort: a
+// position:fixed element escapes overflow clipping, so it's skipped.
+function clippedByAncestor(
+  el: Element,
+  rect: DOMRect,
+  cs: CSSStyleDeclaration,
+): { by: string; edges: string[] } | undefined {
+  if (cs.position === "fixed") return undefined;
+  const tol = 1;
+  for (let node = el.parentElement; node; node = node.parentElement) {
+    const acs = window.getComputedStyle(node);
+    const clipsX = acs.overflowX !== "visible";
+    const clipsY = acs.overflowY !== "visible";
+    if (!clipsX && !clipsY) continue;
+    const ar = node.getBoundingClientRect();
+    const edges: string[] = [];
+    if (clipsY && rect.top < ar.top - tol) edges.push("top");
+    if (clipsX && rect.right > ar.right + tol) edges.push("right");
+    if (clipsY && rect.bottom > ar.bottom + tol) edges.push("bottom");
+    if (clipsX && rect.left < ar.left - tol) edges.push("left");
+    if (edges.length > 0) return { by: refString(node), edges };
+  }
+  return undefined;
+}
+
+// Content set via ::before / ::after pseudo-elements (icon fonts, CSS counters,
+// generated text), which is invisible to DOM/textContent inspection. Reported only
+// when present and not the empty/none default. Values come back quoted as the
+// computed style returns them (e.g. "\"★\"").
+function pseudoContent(el: Element): Record<string, string> | undefined {
+  const out: Record<string, string> = {};
+  for (const pseudo of ["::before", "::after"]) {
+    const content = window.getComputedStyle(el, pseudo).content;
+    if (content && content !== "none" && content !== "normal") {
+      out[pseudo] = content.length > 200 ? `${content.slice(0, 200)}…` : content;
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 // Hit-test the element's center against document.elementFromPoint to detect

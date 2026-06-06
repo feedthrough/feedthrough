@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Feedthrough Playwright Demo</title>
+  <style>
+    #pseudo-probe::before { content: "★ "; }
+  </style>
 </head>
 <body>
   <main style="font-family:sans-serif;max-width:600px;margin:40px auto;padding:0 20px">
@@ -14,6 +17,7 @@
       <p>Total views: <strong id="view-count">0</strong></p>
       <button type="button" id="record-view-btn">Record View</button>
       <p style="color:#888;font-size:13px">Each click should add 1 view.</p>
+      <span id="pseudo-probe">Featured</span>
     </section>
 
     <hr style="margin:32px 0">

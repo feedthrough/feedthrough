@@ -271,7 +271,9 @@ test("inspect_element reports overflow and occlusion", async () => {
   });
   const ov = await server.command<Inspected>("inspect", { selector: "#feed-status" });
   expect(ov.overflow?.x).toBe(true);
-  expect(ov.overflow?.scrollWidth).toBeGreaterThan(ov.overflow?.clientWidth);
+  const o = ov.overflow;
+  expect(o).toBeDefined();
+  if (o) expect(o.scrollWidth).toBeGreaterThan(o.clientWidth);
   await server.command("reset_overrides");
 
   // pointer-events:none makes the element non-hittable; the center-point
@@ -284,6 +286,35 @@ test("inspect_element reports overflow and occlusion", async () => {
   const occ = await server.command<Inspected>("inspect", { selector: "#record-view-btn" });
   expect(occ.hittable).toBe(false);
   expect(occ.occludedBy).toBeTruthy();
+  await server.command("reset_overrides");
+});
+
+test("inspect_element reports ancestor path, clipped-by-ancestor, and pseudo content", async () => {
+  type Inspected = {
+    path: string;
+    clipped?: { by: string; edges: string[] };
+    pseudo?: Record<string, string>;
+  };
+
+  // The ancestor path gives compact structural context ending at the element.
+  const btn = await server.command<Inspected>("inspect", { selector: "#record-view-btn" });
+  expect(typeof btn.path).toBe("string");
+  expect(btn.path).toContain("button#record-view-btn");
+  expect(btn.path).toContain("section#counter-section");
+
+  // ::before content set via CSS is otherwise invisible to DOM inspection.
+  const probe = await server.command<Inspected>("inspect", { selector: "#pseudo-probe" });
+  expect(probe.pseudo?.["::before"]).toContain("★");
+
+  // Collapsing an ancestor's height with overflow:hidden clips the child, even
+  // though the child itself renders fine.
+  await server.command("set_style", {
+    selector: "#feed-section",
+    properties: { overflow: "hidden", height: "5px" },
+  });
+  const clip = await server.command<Inspected>("inspect", { selector: "#refresh-btn" });
+  expect(clip.clipped?.by).toContain("section#feed-section");
+  expect(clip.clipped?.edges).toContain("bottom");
   await server.command("reset_overrides");
 });
 

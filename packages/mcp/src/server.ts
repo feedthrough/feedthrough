@@ -189,14 +189,17 @@ export async function startServer(port = 8765): Promise<void> {
       description:
         "Return full details about a single element: tag, id, classes, all attributes, text content, " +
         "bounding rect (top/right/bottom/left/width/height + page scroll and an inViewport flag), a " +
+        "compact ancestor 'path' (e.g. 'body > main > div#app > button.cta'), a " +
         "curated set of computed styles (layout, box model, typography, positioning, flex/grid), an " +
         "'overflow' block when content is clipped/overflowing (scroll vs client size + per-axis x/y " +
-        "flags), an effective-visibility check ('visible' boolean, with a 'hiddenReason' such as " +
+        "flags), a 'clipped' block when an ancestor's overflow cuts the element off (the clipping " +
+        "ancestor + which edges), an effective-visibility check ('visible' boolean, with a 'hiddenReason' such as " +
         "'ancestor div#modal display:none' or 'opacity:0' when not visible, accounting for ancestors), " +
         "an occlusion check ('hittable' boolean from a center-point hit-test, with 'occludedBy' naming " +
         "the element actually on top when something covers it), " +
         "an 'a11y' block (resolved role, best-effort accessible name, and key states like expanded/" +
         "checked/selected/disabled/hidden/tabindex), " +
+        "a 'pseudo' block with ::before/::after content when set (icon fonts, generated text), " +
         "and live form state where applicable (an input's current value, checked, disabled, etc.). " +
         "Pass 'properties' to additionally read any specific computed CSS properties by name — they " +
         "come back under 'requested'. Use this to understand why an element looks wrong or isn't " +
