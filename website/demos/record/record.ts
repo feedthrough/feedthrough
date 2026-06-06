@@ -1,7 +1,7 @@
-import { chromium } from "@playwright/test";
 import { mkdirSync, renameSync, rmSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { chromium } from "@playwright/test";
 
 // Thin recorder: open the self-playing harness, capture the viewport to webm,
 // stop when the page signals window.__demoComplete. All animation lives in the
@@ -26,9 +26,12 @@ for (const demo of demos) {
   const page = await context.newPage();
 
   await page.goto(`${BASE}/?demo=${demo}&autoplay=1`);
-  await page.waitForFunction(() => (window as { __demoComplete?: boolean }).__demoComplete === true, {
-    timeout: 120_000,
-  });
+  await page.waitForFunction(
+    () => (window as { __demoComplete?: boolean }).__demoComplete === true,
+    {
+      timeout: 120_000,
+    },
+  );
   await page.waitForTimeout(2500); // sit on the final frame before the loop restarts
 
   const video = page.video();

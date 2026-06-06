@@ -9,13 +9,13 @@
     "ignoreUnknown": true,
     "includes": [
       "**",
-      "!**/dist/**",
-      "!**/build/**",
-      "!**/generated/**",
-      "!**/.astro/**",
-      "!**/coverage/**",
-      "!**/test-results/**",
-      "!**/playwright-report/**"
+      "!**/dist",
+      "!**/build",
+      "!**/generated",
+      "!**/.astro",
+      "!**/coverage",
+      "!**/test-results",
+      "!**/playwright-report"
     ]
   },
   "formatter": {
@@ -44,5 +44,18 @@
         "organizeImports": "on"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.astro", "**/*.vue", "**/*.svelte"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedImports": "off",
+            "noUnusedVariables": "off"
+          }
+        }
+      }
+    }
+  ]
 }

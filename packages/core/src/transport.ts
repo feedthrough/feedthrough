@@ -24,12 +24,16 @@ export class Transport {
 
     this.ws.onopen = () => {
       this.onStatus(true);
-      for (const msg of this.queue) this.ws!.send(msg);
+      for (const msg of this.queue) this.ws?.send(msg);
       this.queue = [];
     };
 
-    this.ws.onmessage = (event) => {
-      try { this.onMessage(JSON.parse(event.data as string)); } catch { /* ignore */ }
+    this.ws.onmessage = event => {
+      try {
+        this.onMessage(JSON.parse(event.data as string));
+      } catch {
+        /* ignore */
+      }
     };
 
     this.ws.onclose = () => {
@@ -39,7 +43,9 @@ export class Transport {
       }
     };
 
-    this.ws.onerror = () => { /* onclose fires immediately after */ };
+    this.ws.onerror = () => {
+      /* onclose fires immediately after */
+    };
   }
 
   send(msg: BrowserMessage): void {

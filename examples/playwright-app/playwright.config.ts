@@ -8,6 +8,6 @@ export default defineConfig({
   webServer: {
     command: "node server.mjs",
     url: "http://localhost:4173",
-    reuseExistingServer: !process.env["CI"],
+    reuseExistingServer: !process.env.CI,
   },
 });

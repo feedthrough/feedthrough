@@ -1,13 +1,9 @@
 import type { ChatMessage, CodeLine, DemoApi, Step } from "./types";
 
-export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+export const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 /** Reveal text one character at a time, with a little human jitter. */
-export async function typewriter(
-  text: string,
-  onUpdate: (partial: string) => void,
-  cps = 50,
-) {
+export async function typewriter(text: string, onUpdate: (partial: string) => void, cps = 50) {
   const base = 1000 / cps;
   let out = "";
   for (const ch of text) {
@@ -36,7 +32,7 @@ export class ChatController {
     this.commit();
   }
   private patch(id: number, patch: Partial<ChatMessage>) {
-    this.msgs = this.msgs.map((m) => (m.id === id ? ({ ...m, ...patch } as ChatMessage) : m));
+    this.msgs = this.msgs.map(m => (m.id === id ? ({ ...m, ...patch } as ChatMessage) : m));
     this.commit();
   }
 
@@ -44,7 +40,11 @@ export class ChatController {
     const id = this.nextId++;
     this.push({ id, role, text: "" } as ChatMessage);
     const cps = role === "user" ? 40 : 55;
-    await typewriter(text, (partial) => this.patch(id, { text: partial } as Partial<ChatMessage>), cps);
+    await typewriter(
+      text,
+      partial => this.patch(id, { text: partial } as Partial<ChatMessage>),
+      cps,
+    );
   }
 
   async tool(name: string, arg: string | undefined, dwell = 700) {

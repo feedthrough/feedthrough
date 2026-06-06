@@ -17,7 +17,7 @@ export function ButtonOverflow({ fixed }: { fixed: boolean }) {
           <span>$247.00</span>
         </li>
       </ul>
-      <button className={`cta ${fixed ? "cta-fixed" : ""}`}>
+      <button type="button" className={`cta ${fixed ? "cta-fixed" : ""}`}>
         Click to Continue to the Next Step
       </button>
     </div>

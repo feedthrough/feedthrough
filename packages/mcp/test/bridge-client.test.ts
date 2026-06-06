@@ -9,9 +9,10 @@
  *
  * Run with `node --test` (Node 22+ strips the TS types natively).
  */
-import { test } from "node:test";
+
 import assert from "node:assert/strict";
-import { WebSocketServer, WebSocket } from "ws";
+import { test } from "node:test";
+import { WebSocket, WebSocketServer } from "ws";
 import { BridgeClient } from "../src/bridge-client.ts";
 
 const PORT = 8771;
@@ -21,13 +22,13 @@ async function waitForStartupError(client: BridgeClient, timeout = 1000): Promis
   const deadline = Date.now() + timeout;
   while (client.startupError === null) {
     if (Date.now() > deadline) throw new Error("timed out waiting for startupError");
-    await new Promise((r) => setTimeout(r, 10));
+    await new Promise(r => setTimeout(r, 10));
   }
 }
 
 /** Open one connection with the given Origin; resolve whether the server accepted it. */
 function tryConnect(port: number, origin: string, timeout = 1000): Promise<boolean> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const ws = new WebSocket(`ws://127.0.0.1:${port}`, { origin });
     const finish = (accepted: boolean) => {
       clearTimeout(timer);
@@ -45,14 +46,14 @@ async function waitUntilReady(port: number, timeout = 1000): Promise<void> {
   const deadline = Date.now() + timeout;
   while (!(await tryConnect(port, "http://localhost"))) {
     if (Date.now() > deadline) throw new Error("bridge did not start accepting connections");
-    await new Promise((r) => setTimeout(r, 10));
+    await new Promise(r => setTimeout(r, 10));
   }
 }
 
 test("a failed bind surfaces a startup error through every tool path", async () => {
   // Occupy the port so the BridgeClient's bind fails with EADDRINUSE.
   const blocker = new WebSocketServer({ port: PORT, host: "127.0.0.1" });
-  await new Promise<void>((resolve) => blocker.on("listening", () => resolve()));
+  await new Promise<void>(resolve => blocker.on("listening", () => resolve()));
 
   const client = new BridgeClient(PORT);
   await waitForStartupError(client);
@@ -72,7 +73,7 @@ test("a failed bind surfaces a startup error through every tool path", async () 
   );
 
   await client.close();
-  await new Promise<void>((resolve) => blocker.close(() => resolve()));
+  await new Promise<void>(resolve => blocker.close(() => resolve()));
 });
 
 test("the bridge accepts loopback and default .test origins, rejects public ones", async () => {
@@ -92,8 +93,8 @@ test("the bridge accepts loopback and default .test origins, rejects public ones
 });
 
 test("FEEDTHROUGH_ALLOWED_HOST_SUFFIXES replaces the default suffix list", async () => {
-  const original = process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"];
-  process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"] = ".local";
+  const original = process.env.FEEDTHROUGH_ALLOWED_HOST_SUFFIXES;
+  process.env.FEEDTHROUGH_ALLOWED_HOST_SUFFIXES = ".local";
   const port = 8773;
   const client = new BridgeClient(port);
   await waitUntilReady(port);
@@ -108,17 +109,17 @@ test("FEEDTHROUGH_ALLOWED_HOST_SUFFIXES replaces the default suffix list", async
   } finally {
     await client.close();
     if (original === undefined) {
-      delete process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"];
+      delete process.env.FEEDTHROUGH_ALLOWED_HOST_SUFFIXES;
     } else {
-      process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"] = original;
+      process.env.FEEDTHROUGH_ALLOWED_HOST_SUFFIXES = original;
     }
   }
 });
 
 test("a suffix without a leading dot is normalized to a boundary match", async () => {
-  const original = process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"];
+  const original = process.env.FEEDTHROUGH_ALLOWED_HOST_SUFFIXES;
   // No leading dot: must not match an arbitrary substring of the hostname.
-  process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"] = "test";
+  process.env.FEEDTHROUGH_ALLOWED_HOST_SUFFIXES = "test";
   const port = 8774;
   const client = new BridgeClient(port);
   await waitUntilReady(port);
@@ -131,9 +132,9 @@ test("a suffix without a leading dot is normalized to a boundary match", async (
   } finally {
     await client.close();
     if (original === undefined) {
-      delete process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"];
+      delete process.env.FEEDTHROUGH_ALLOWED_HOST_SUFFIXES;
     } else {
-      process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"] = original;
+      process.env.FEEDTHROUGH_ALLOWED_HOST_SUFFIXES = original;
     }
   }
 });

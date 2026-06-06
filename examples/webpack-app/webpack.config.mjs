@@ -1,7 +1,7 @@
-import HtmlWebpackPlugin from "html-webpack-plugin";
-import { FeedthroughPlugin } from "@feedthrough/webpack";
-import { resolve, dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { FeedthroughPlugin } from "@feedthrough/webpack";
+import HtmlWebpackPlugin from "html-webpack-plugin";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -18,10 +18,7 @@ export default {
   module: {
     rules: [{ test: /\.m?js$/, resolve: { fullySpecified: false } }],
   },
-  plugins: [
-    new HtmlWebpackPlugin({ template: "./public/index.html" }),
-    new FeedthroughPlugin(),
-  ],
+  plugins: [new HtmlWebpackPlugin({ template: "./public/index.html" }), new FeedthroughPlugin()],
   devServer: {
     port: 5175,
   },

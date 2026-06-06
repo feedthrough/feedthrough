@@ -1,6 +1,6 @@
-import { defineNuxtModule, addVitePlugin } from "@nuxt/kit";
-import { feedthrough } from "@feedthrough/vite";
 import type { BridgeOptions } from "@feedthrough/core";
+import { feedthrough } from "@feedthrough/vite";
+import { addVitePlugin, defineNuxtModule } from "@nuxt/kit";
 
 /**
  * Nuxt module that injects the Feedthrough bridge in dev mode.

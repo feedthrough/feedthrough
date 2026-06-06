@@ -5,7 +5,7 @@ import type { Step } from "./types";
 export const listTimeline: Step[] = [
   { kind: "user", text: "Clicking ticks the wrong box." },
   { kind: "agent", text: "Let me reproduce it — I'll click “Item 3”." },
-  { kind: "tool", name: "click", arg: '"Item 3"', do: (api) => api.clickItem(3) },
+  { kind: "tool", name: "click", arg: '"Item 3"', do: api => api.clickItem(3) },
   { kind: "pause", ms: 500 },
   {
     kind: "agent",
@@ -30,7 +30,7 @@ export const listTimeline: Step[] = [
   { kind: "user", text: "Apply it." },
   { kind: "tool", name: "edit", arg: "List.tsx" },
   { kind: "agent", text: "Applied. Clicking Item 3 again to verify…" },
-  { kind: "tool", name: "click", arg: '"Item 3"', do: (api) => api.clickItem(3, true) },
+  { kind: "tool", name: "click", arg: '"Item 3"', do: api => api.clickItem(3, true) },
   { kind: "pause", ms: 500 },
   { kind: "agent", text: "Now Item 3 ticks. Fixed." },
 ];
@@ -49,11 +49,14 @@ export const buttonTimeline: Step[] = [
   {
     kind: "tool",
     name: "set_style",
-    arg: '.cta { width: auto; padding: 14px 28px }',
-    do: (api) => api.setButtonFixed(true),
+    arg: ".cta { width: auto; padding: 14px 28px }",
+    do: api => api.setButtonFixed(true),
   },
   { kind: "pause", ms: 500 },
-  { kind: "agent", text: "Previewed live — the label fits now. Should I write it into the stylesheet?" },
+  {
+    kind: "agent",
+    text: "Previewed live — the label fits now. Should I write it into the stylesheet?",
+  },
   { kind: "user", text: "Yes." },
   { kind: "tool", name: "edit", arg: "button.css" },
   {

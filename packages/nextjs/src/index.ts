@@ -1,6 +1,6 @@
-import type { NextConfig } from "next";
 import type { BridgeOptions } from "@feedthrough/core";
 import { FeedthroughPlugin } from "@feedthrough/webpack";
+import type { NextConfig } from "next";
 
 /**
  * Wraps your Next.js config to inject the Feedthrough bridge in dev mode.

@@ -1,6 +1,6 @@
-import type { Transport } from "./transport";
 import type { ConsoleInterceptor } from "./interceptors/console";
 import type { NetworkInterceptor } from "./interceptors/network";
+import type { Transport } from "./transport";
 import type { Command, ResultMessage } from "./types";
 
 export class CommandHandler {
@@ -34,20 +34,39 @@ export class CommandHandler {
 
   private dispatch(cmd: Command): unknown {
     switch (cmd.action) {
-      case "click":               return clickEl(cmd.selector);
-      case "fill":                return fillEl(cmd.selector, cmd.value);
-      case "hover":               return hoverEl(cmd.selector);
-      case "inspect":             return inspectEl(cmd.selector, cmd.properties);
-      case "query_dom":           return queryDom(cmd.selector);
-      case "get_console_logs":    return this.console.getLogs({ limit: cmd.limit, levels: cmd.levels, match: cmd.match, since: cmd.since });
-      case "get_network_requests": return this.network.getRequests(cmd.filter, cmd.since);
-      case "press_key":           return pressKey(cmd.selector, cmd.key);
-      case "get_html":            return getHtml(cmd.selector);
-      case "get_page_info":       return getPageInfo();
-      case "set_style":           return setStyle(cmd.selector, cmd.properties);
-      case "set_attribute":       return setAttribute(cmd.selector, cmd.name, cmd.value);
-      case "set_text":            return setText(cmd.selector, cmd.text);
-      case "reset_overrides":     return resetOverrides();
+      case "click":
+        return clickEl(cmd.selector);
+      case "fill":
+        return fillEl(cmd.selector, cmd.value);
+      case "hover":
+        return hoverEl(cmd.selector);
+      case "inspect":
+        return inspectEl(cmd.selector, cmd.properties);
+      case "query_dom":
+        return queryDom(cmd.selector);
+      case "get_console_logs":
+        return this.console.getLogs({
+          limit: cmd.limit,
+          levels: cmd.levels,
+          match: cmd.match,
+          since: cmd.since,
+        });
+      case "get_network_requests":
+        return this.network.getRequests(cmd.filter, cmd.since);
+      case "press_key":
+        return pressKey(cmd.selector, cmd.key);
+      case "get_html":
+        return getHtml(cmd.selector);
+      case "get_page_info":
+        return getPageInfo();
+      case "set_style":
+        return setStyle(cmd.selector, cmd.properties);
+      case "set_attribute":
+        return setAttribute(cmd.selector, cmd.name, cmd.value);
+      case "set_text":
+        return setText(cmd.selector, cmd.text);
+      case "reset_overrides":
+        return resetOverrides();
     }
   }
 }
@@ -76,9 +95,11 @@ function fillEl(selector: string, value: string) {
   // element's own prototype — using HTMLInputElement's setter on a <textarea>
   // or <select> throws "Illegal invocation".
   const proto =
-    el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype :
-    el instanceof HTMLSelectElement ? HTMLSelectElement.prototype :
-    HTMLInputElement.prototype;
+    el instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype
+      : el instanceof HTMLSelectElement
+        ? HTMLSelectElement.prototype
+        : HTMLInputElement.prototype;
   const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
   if (nativeSetter) {
     nativeSetter.call(el, value);
@@ -101,14 +122,38 @@ function hoverEl(selector: string) {
 // typography, positioning, and fl/grid — enough to diagnose most "why does this
 // look wrong" cases. Request anything beyond this via the `properties` arg.
 const DEFAULT_STYLE_PROPS = [
-  "display", "position", "visibility", "opacity", "z-index", "box-sizing",
-  "top", "right", "bottom", "left",
-  "width", "height", "margin", "padding", "border",
-  "color", "background-color",
-  "font-family", "font-size", "font-weight", "line-height", "text-align",
-  "overflow", "cursor", "pointer-events",
-  "flex", "flex-direction", "justify-content", "align-items", "gap",
-  "grid-template-columns", "transform",
+  "display",
+  "position",
+  "visibility",
+  "opacity",
+  "z-index",
+  "box-sizing",
+  "top",
+  "right",
+  "bottom",
+  "left",
+  "width",
+  "height",
+  "margin",
+  "padding",
+  "border",
+  "color",
+  "background-color",
+  "font-family",
+  "font-size",
+  "font-weight",
+  "line-height",
+  "text-align",
+  "overflow",
+  "cursor",
+  "pointer-events",
+  "flex",
+  "flex-direction",
+  "justify-content",
+  "align-items",
+  "gap",
+  "grid-template-columns",
+  "transform",
 ];
 
 function inspectEl(selector: string, properties?: string[]) {
@@ -123,13 +168,21 @@ function inspectEl(selector: string, properties?: string[]) {
     attributes: Object.fromEntries(Array.from(el.attributes).map(a => [a.name, a.value])),
     textContent: el.textContent?.trim().slice(0, 200),
     rect: {
-      top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left,
-      width: rect.width, height: rect.height, x: rect.x, y: rect.y,
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+      left: rect.left,
+      width: rect.width,
+      height: rect.height,
+      x: rect.x,
+      y: rect.y,
     },
     scroll: { x: window.scrollX, y: window.scrollY },
     inViewport:
-      rect.bottom > 0 && rect.right > 0 &&
-      rect.top < window.innerHeight && rect.left < window.innerWidth,
+      rect.bottom > 0 &&
+      rect.right > 0 &&
+      rect.top < window.innerHeight &&
+      rect.left < window.innerWidth,
     styles: pickStyles(cs, DEFAULT_STYLE_PROPS),
   };
 
@@ -177,7 +230,9 @@ function overflowInfo(el: Element): Record<string, unknown> | undefined {
 function refString(el: Element): string {
   const tag = el.tagName.toLowerCase();
   const id = el.id ? `#${el.id}` : "";
-  const classes = Array.from(el.classList).map(c => `.${c}`).join("");
+  const classes = Array.from(el.classList)
+    .map(c => `.${c}`)
+    .join("");
   return tag + id + classes;
 }
 
@@ -188,7 +243,8 @@ function refString(el: Element): string {
 // be tested). hittable is true when the topmost element is the element itself or a
 // descendant; otherwise occludedBy names the element actually on top.
 function occlusionInfo(
-  el: Element, rect: DOMRect,
+  el: Element,
+  rect: DOMRect,
 ): { hittable: boolean; occludedBy?: Record<string, unknown> } | undefined {
   if (rect.width === 0 || rect.height === 0) return undefined;
   const cx = rect.left + rect.width / 2;
@@ -200,7 +256,11 @@ function occlusionInfo(
   if (top === el || el.contains(top)) return { hittable: true };
   return {
     hittable: false,
-    occludedBy: { tag: top.tagName.toLowerCase(), id: top.id || null, classes: Array.from(top.classList) },
+    occludedBy: {
+      tag: top.tagName.toLowerCase(),
+      id: top.id || null,
+      classes: Array.from(top.classList),
+    },
   };
 }
 
@@ -211,18 +271,24 @@ function occlusionInfo(
 // the child's own styles; visibility:hidden inherits but a child can override it,
 // so we rely on the element's own computed visibility for that one.
 function effectiveVisibility(
-  el: Element, rect: DOMRect, cs: CSSStyleDeclaration,
+  el: Element,
+  rect: DOMRect,
+  cs: CSSStyleDeclaration,
 ): { visible: true } | { visible: false; reason: string } {
   if (cs.display === "none") return { visible: false, reason: "display:none" };
 
   for (let node = el.parentElement; node; node = node.parentElement) {
     const acs = window.getComputedStyle(node);
-    if (acs.display === "none") return { visible: false, reason: `ancestor ${refString(node)} display:none` };
-    if (parseFloat(acs.opacity) === 0) return { visible: false, reason: `ancestor ${refString(node)} opacity:0` };
-    if (node.getAttribute("aria-hidden") === "true") return { visible: false, reason: `ancestor ${refString(node)} aria-hidden` };
+    if (acs.display === "none")
+      return { visible: false, reason: `ancestor ${refString(node)} display:none` };
+    if (parseFloat(acs.opacity) === 0)
+      return { visible: false, reason: `ancestor ${refString(node)} opacity:0` };
+    if (node.getAttribute("aria-hidden") === "true")
+      return { visible: false, reason: `ancestor ${refString(node)} aria-hidden` };
   }
 
-  if (cs.visibility === "hidden" || cs.visibility === "collapse") return { visible: false, reason: `visibility:${cs.visibility}` };
+  if (cs.visibility === "hidden" || cs.visibility === "collapse")
+    return { visible: false, reason: `visibility:${cs.visibility}` };
   if (parseFloat(cs.opacity) === 0) return { visible: false, reason: "opacity:0" };
   if (el.getAttribute("aria-hidden") === "true") return { visible: false, reason: "aria-hidden" };
   if (rect.width === 0 || rect.height === 0) return { visible: false, reason: "zero-size" };
@@ -246,34 +312,70 @@ function pickStyles(cs: CSSStyleDeclaration, props: string[]): Record<string, st
 function implicitRole(el: Element): string | null {
   const tag = el.tagName.toLowerCase();
   switch (tag) {
-    case "a": case "area": return el.hasAttribute("href") ? "link" : null;
-    case "button": return "button";
+    case "a":
+    case "area":
+      return el.hasAttribute("href") ? "link" : null;
+    case "button":
+      return "button";
     case "input": {
       const t = (el.getAttribute("type") || "text").toLowerCase();
       const map: Record<string, string> = {
-        checkbox: "checkbox", radio: "radio", range: "slider", number: "spinbutton",
-        button: "button", submit: "button", reset: "button", image: "button",
-        search: "searchbox", email: "textbox", tel: "textbox", url: "textbox", text: "textbox",
+        checkbox: "checkbox",
+        radio: "radio",
+        range: "slider",
+        number: "spinbutton",
+        button: "button",
+        submit: "button",
+        reset: "button",
+        image: "button",
+        search: "searchbox",
+        email: "textbox",
+        tel: "textbox",
+        url: "textbox",
+        text: "textbox",
       };
       return map[t] ?? (t === "hidden" ? null : "textbox");
     }
-    case "select": return el.hasAttribute("multiple") ? "listbox" : "combobox";
-    case "textarea": return "textbox";
-    case "img": return el.getAttribute("alt") === "" ? "presentation" : "img";
-    case "nav": return "navigation";
-    case "main": return "main";
-    case "header": return "banner";
-    case "footer": return "contentinfo";
-    case "aside": return "complementary";
-    case "section": return "region";
-    case "article": return "article";
-    case "dialog": return "dialog";
-    case "form": return "form";
-    case "table": return "table";
-    case "ul": case "ol": return "list";
-    case "li": return "listitem";
-    case "h1": case "h2": case "h3": case "h4": case "h5": case "h6": return "heading";
-    default: return null;
+    case "select":
+      return el.hasAttribute("multiple") ? "listbox" : "combobox";
+    case "textarea":
+      return "textbox";
+    case "img":
+      return el.getAttribute("alt") === "" ? "presentation" : "img";
+    case "nav":
+      return "navigation";
+    case "main":
+      return "main";
+    case "header":
+      return "banner";
+    case "footer":
+      return "contentinfo";
+    case "aside":
+      return "complementary";
+    case "section":
+      return "region";
+    case "article":
+      return "article";
+    case "dialog":
+      return "dialog";
+    case "form":
+      return "form";
+    case "table":
+      return "table";
+    case "ul":
+    case "ol":
+      return "list";
+    case "li":
+      return "listitem";
+    case "h1":
+    case "h2":
+    case "h3":
+    case "h4":
+    case "h5":
+    case "h6":
+      return "heading";
+    default:
+      return null;
   }
 }
 
@@ -284,15 +386,21 @@ function implicitRole(el: Element): string | null {
 function accessibleName(el: Element): string | undefined {
   const labelledby = el.getAttribute("aria-labelledby");
   if (labelledby) {
-    const txt = labelledby.split(/\s+/)
+    const txt = labelledby
+      .split(/\s+/)
       .map(id => document.getElementById(id)?.textContent?.trim())
-      .filter(Boolean).join(" ");
+      .filter(Boolean)
+      .join(" ");
     if (txt) return txt.slice(0, 200);
   }
   const label = el.getAttribute("aria-label")?.trim();
   if (label) return label.slice(0, 200);
 
-  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
+  if (
+    el instanceof HTMLInputElement ||
+    el instanceof HTMLTextAreaElement ||
+    el instanceof HTMLSelectElement
+  ) {
     if (el.id) {
       const forLabel = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
       const txt = forLabel?.textContent?.trim();
@@ -325,7 +433,14 @@ function accessibilityInfo(el: Element): Record<string, unknown> | undefined {
   if (name) a11y.name = name;
 
   const states: Record<string, unknown> = {};
-  for (const attr of ["aria-expanded", "aria-checked", "aria-selected", "aria-pressed", "aria-current", "aria-disabled"]) {
+  for (const attr of [
+    "aria-expanded",
+    "aria-checked",
+    "aria-selected",
+    "aria-pressed",
+    "aria-current",
+    "aria-disabled",
+  ]) {
     const v = el.getAttribute(attr);
     if (v !== null) states[attr.slice(5)] = v;
   }
@@ -372,7 +487,7 @@ function elementState(el: Element): Record<string, unknown> | undefined {
 }
 
 function capValue(v: string): string {
-  return v.length > 1000 ? v.slice(0, 1000) + "…[truncated]" : v;
+  return v.length > 1000 ? `${v.slice(0, 1000)}…[truncated]` : v;
 }
 
 function queryDom(selector: string) {
@@ -387,26 +502,31 @@ function queryDom(selector: string) {
 // Named keys → DOM code/keyCode. keyCode is legacy but many handlers still read
 // it, so we set it for the common keys. Single printable chars are handled below.
 const NAMED_KEYS: Record<string, { code: string; keyCode: number }> = {
-  Enter:      { code: "Enter",      keyCode: 13 },
-  Tab:        { code: "Tab",        keyCode: 9 },
-  Escape:     { code: "Escape",     keyCode: 27 },
-  Backspace:  { code: "Backspace",  keyCode: 8 },
-  Delete:     { code: "Delete",     keyCode: 46 },
-  ArrowUp:    { code: "ArrowUp",    keyCode: 38 },
-  ArrowDown:  { code: "ArrowDown",  keyCode: 40 },
-  ArrowLeft:  { code: "ArrowLeft",  keyCode: 37 },
+  Enter: { code: "Enter", keyCode: 13 },
+  Tab: { code: "Tab", keyCode: 9 },
+  Escape: { code: "Escape", keyCode: 27 },
+  Backspace: { code: "Backspace", keyCode: 8 },
+  Delete: { code: "Delete", keyCode: 46 },
+  ArrowUp: { code: "ArrowUp", keyCode: 38 },
+  ArrowDown: { code: "ArrowDown", keyCode: 40 },
+  ArrowLeft: { code: "ArrowLeft", keyCode: 37 },
   ArrowRight: { code: "ArrowRight", keyCode: 39 },
-  " ":        { code: "Space",      keyCode: 32 },
+  " ": { code: "Space", keyCode: 32 },
 };
 
 function pressKey(selector: string, key: string) {
   const el = getEl(selector) as HTMLElement;
   el.focus?.();
   const named = NAMED_KEYS[key];
-  const keyCode = named ? named.keyCode : (key.length === 1 ? key.toUpperCase().charCodeAt(0) : 0);
-  const code = named ? named.code : (key.length === 1 ? `Key${key.toUpperCase()}` : key);
+  const keyCode = named ? named.keyCode : key.length === 1 ? key.toUpperCase().charCodeAt(0) : 0;
+  const code = named ? named.code : key.length === 1 ? `Key${key.toUpperCase()}` : key;
   const init: KeyboardEventInit & { keyCode: number; which: number } = {
-    key, code, keyCode, which: keyCode, bubbles: true, cancelable: true,
+    key,
+    code,
+    keyCode,
+    which: keyCode,
+    bubbles: true,
+    cancelable: true,
   };
   el.dispatchEvent(new KeyboardEvent("keydown", init));
   if (key.length === 1) el.dispatchEvent(new KeyboardEvent("keypress", init));
@@ -424,7 +544,7 @@ function getHtml(selector: string) {
   const truncated = html.length > MAX_HTML_CHARS;
   return {
     tag: el.tagName.toLowerCase(),
-    html: truncated ? html.slice(0, MAX_HTML_CHARS) + "…[truncated]" : html,
+    html: truncated ? `${html.slice(0, MAX_HTML_CHARS)}…[truncated]` : html,
     truncated,
   };
 }
@@ -457,7 +577,14 @@ const CLOBBER_WARNING =
   "component state). If it snaps back, change it in the source instead of here.";
 
 // Attributes frameworks commonly own and rewrite on render.
-const FRAMEWORK_OWNED_ATTRS = new Set(["class", "style", "value", "checked", "disabled", "selected"]);
+const FRAMEWORK_OWNED_ATTRS = new Set([
+  "class",
+  "style",
+  "value",
+  "checked",
+  "disabled",
+  "selected",
+]);
 
 const overrides: Array<() => void> = [];
 
@@ -503,7 +630,9 @@ function setAttribute(selector: string, name: string, value: string | null) {
 function setText(selector: string, text: string) {
   const el = getEl(selector);
   const prev = el.textContent;
-  overrides.push(() => { el.textContent = prev; });
+  overrides.push(() => {
+    el.textContent = prev;
+  });
   el.textContent = text;
   // textContent is almost always framework-controlled, so always warn.
   return {
@@ -517,15 +646,19 @@ function setText(selector: string, text: string) {
 function resetOverrides() {
   const count = overrides.length;
   // Undo in reverse so repeated edits to the same property unwind to the original.
-  while (overrides.length) overrides.pop()!();
-  return { reverted: count, note: "All bridge-applied DOM changes since connect have been undone (best effort — elements re-created by the framework since may not roll back)." };
+  while (overrides.length) overrides.pop()?.();
+  return {
+    reverted: count,
+    note: "All bridge-applied DOM changes since connect have been undone (best effort — elements re-created by the framework since may not roll back).",
+  };
 }
 
 // ── Type guard ────────────────────────────────────────────────────────────────
 
 function isCommand(v: unknown): v is Command {
   return (
-    typeof v === "object" && v !== null &&
+    typeof v === "object" &&
+    v !== null &&
     (v as Record<string, unknown>).type === "command" &&
     typeof (v as Record<string, unknown>).id === "string"
   );

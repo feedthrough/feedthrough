@@ -5,7 +5,7 @@ export function ChatPanel({ messages }: { messages: ChatMessage[] }) {
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages]);
+  }, []);
 
   return (
     <aside className="chat">
@@ -13,7 +13,7 @@ export function ChatPanel({ messages }: { messages: ChatMessage[] }) {
         <span className="status-dot" /> Agent session
       </header>
       <div className="chat-body">
-        {messages.map((m) => (
+        {messages.map(m => (
           <Message key={m.id} m={m} />
         ))}
         <div ref={endRef} />
@@ -54,8 +54,11 @@ function Message({ m }: { m: ChatMessage }) {
           <div className="code-label">{m.label}</div>
           <pre>
             {m.lines.map((l, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static demo content, never reordered
               <div key={i} className={l.kind ? `ln ln-${l.kind}` : "ln"}>
-                <span className="gutter">{l.kind === "del" ? "-" : l.kind === "add" ? "+" : " "}</span>
+                <span className="gutter">
+                  {l.kind === "del" ? "-" : l.kind === "add" ? "+" : " "}
+                </span>
                 {l.text}
               </div>
             ))}

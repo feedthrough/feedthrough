@@ -1,4 +1,4 @@
-import { WebSocketServer, WebSocket } from "ws";
+import { WebSocket, WebSocketServer } from "ws";
 
 interface Pending {
   resolve: (value: unknown) => void;
@@ -29,7 +29,8 @@ interface HelloMessage {
 
 function isResultMessage(v: unknown): v is ResultMessage {
   return (
-    typeof v === "object" && v !== null &&
+    typeof v === "object" &&
+    v !== null &&
     (v as Record<string, unknown>).type === "result" &&
     typeof (v as Record<string, unknown>).commandId === "string"
   );
@@ -37,7 +38,8 @@ function isResultMessage(v: unknown): v is ResultMessage {
 
 function isHelloMessage(v: unknown): v is HelloMessage {
   return (
-    typeof v === "object" && v !== null &&
+    typeof v === "object" &&
+    v !== null &&
     (v as Record<string, unknown>).type === "hello" &&
     typeof (v as Record<string, unknown>).url === "string"
   );
@@ -60,13 +62,13 @@ const DEFAULT_ALLOWED_HOST_SUFFIXES = [".test"];
 // the defaults, so include ".test" to keep it (e.g. ".test,.local,.localhost").
 // A leading dot is added if missing, so "test" never matches "mytest".
 function allowedHostSuffixes(): string[] {
-  const fromEnv = process.env["FEEDTHROUGH_ALLOWED_HOST_SUFFIXES"];
+  const fromEnv = process.env.FEEDTHROUGH_ALLOWED_HOST_SUFFIXES;
   if (fromEnv === undefined) return DEFAULT_ALLOWED_HOST_SUFFIXES;
   return fromEnv
     .split(",")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
-    .map((s) => (s.startsWith(".") ? s : `.${s}`));
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+    .map(s => (s.startsWith(".") ? s : `.${s}`));
 }
 
 // An origin is allowed when its hostname is loopback or ends with a configured
@@ -76,7 +78,7 @@ function isAllowedOrigin(origin: string | undefined, suffixes: string[]): boolea
   try {
     const { hostname } = new URL(origin);
     if (LOOPBACK_HOSTS.has(hostname)) return true;
-    return suffixes.some((suffix) => hostname.endsWith(suffix));
+    return suffixes.some(suffix => hostname.endsWith(suffix));
   } catch {
     return false;
   }
@@ -99,43 +101,56 @@ export class BridgeClient {
       verifyClient: ({ origin }: { origin: string }) => isAllowedOrigin(origin, suffixes),
     });
 
-    this.wss.on("listening", () => { this.bound = true; });
+    this.wss.on("listening", () => {
+      this.bound = true;
+    });
 
     // Server-level errors (most commonly EADDRINUSE on startup). Without this
     // listener Node would crash on an unhandled 'error' event.
     this.wss.on("error", (err: NodeJS.ErrnoException) => {
       if (!this.bound) {
         // Any error before the server binds is a fatal startup failure.
-        this.startupError = err.code === "EADDRINUSE"
-          ? `Bridge WebSocket server failed to bind to port ${port} (address already in use). ` +
-            `Free the port (e.g. lsof -ti :${port} | xargs kill) or set FEEDTHROUGH_PORT ` +
-            `to an available port, then restart the MCP server.`
-          : `Bridge WebSocket server failed to start on port ${port}: ${err.message}` +
-            (err.code === "EACCES"
-              ? `. Port ${port} requires elevated privileges; set FEEDTHROUGH_PORT to a port above 1024.`
-              : ` (${err.code ?? "unknown error"}).`);
+        this.startupError =
+          err.code === "EADDRINUSE"
+            ? `Bridge WebSocket server failed to bind to port ${port} (address already in use). ` +
+              `Free the port (e.g. lsof -ti :${port} | xargs kill) or set FEEDTHROUGH_PORT ` +
+              `to an available port, then restart the MCP server.`
+            : `Bridge WebSocket server failed to start on port ${port}: ${err.message}` +
+              (err.code === "EACCES"
+                ? `. Port ${port} requires elevated privileges; set FEEDTHROUGH_PORT to a port above 1024.`
+                : ` (${err.code ?? "unknown error"}).`);
         process.stderr.write(`[feedthrough] ${this.startupError}\n`);
         return;
       }
       process.stderr.write(`[feedthrough] websocket server error: ${err.message}\n`);
     });
 
-    this.wss.on("connection", (ws) => {
+    this.wss.on("connection", ws => {
       const id = `tab-${++this.counter}`;
-      const conn: Connection = { id, ws, url: "(unknown)", lastActivity: Date.now(), connectedAt: Date.now() };
+      const conn: Connection = {
+        id,
+        ws,
+        url: "(unknown)",
+        lastActivity: Date.now(),
+        connectedAt: Date.now(),
+      };
       this.connections.set(id, conn);
       process.stderr.write(`[feedthrough] tab connected (${id}), open tabs: ${this.openCount}\n`);
 
       // Per-connection errors (dropped TCP, malformed frames, etc.). Without
       // this listener one misbehaving tab would crash the whole MCP server.
       // 'close' fires after 'error', so cleanup still happens in the close handler.
-      ws.on("error", (err) => {
+      ws.on("error", err => {
         process.stderr.write(`[feedthrough] tab error (${id}): ${err.message}\n`);
       });
 
-      ws.on("message", (data) => {
+      ws.on("message", data => {
         let msg: unknown;
-        try { msg = JSON.parse(data.toString()); } catch { return; }
+        try {
+          msg = JSON.parse(data.toString());
+        } catch {
+          return;
+        }
 
         conn.lastActivity = Date.now();
 
@@ -162,7 +177,9 @@ export class BridgeClient {
 
       ws.on("close", () => {
         this.connections.delete(id);
-        process.stderr.write(`[feedthrough] tab disconnected (${id}), open tabs: ${this.openCount}\n`);
+        process.stderr.write(
+          `[feedthrough] tab disconnected (${id}), open tabs: ${this.openCount}\n`,
+        );
       });
     });
   }
@@ -223,6 +240,6 @@ export class BridgeClient {
   }
 
   close(): Promise<void> {
-    return new Promise((resolve) => this.wss.close(() => resolve()));
+    return new Promise(resolve => this.wss.close(() => resolve()));
   }
 }

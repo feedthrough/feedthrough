@@ -1,5 +1,5 @@
-import type { Handle } from "@sveltejs/kit";
 import type { BridgeOptions } from "@feedthrough/core";
+import type { Handle } from "@sveltejs/kit";
 import { bridgeBundle } from "./generated/bundle.js";
 
 export function setupFeedthrough(options: BridgeOptions = {}): Handle {
