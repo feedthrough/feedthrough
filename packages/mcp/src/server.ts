@@ -65,6 +65,9 @@ The bridge is injected into the page, so you see framework state, not just the r
 
 ## Tips
 
+The tools are more general than their names suggest. Everything below is one way to use them,
+not the only way, so improvise: any observe -> interact -> re-observe loop is fair game.
+
 - IDs are the most reliable selectors: \`#submit-btn\`, \`#search-input\`
 - \`query_dom\` returns all matches; use it to count items or verify what's in a list
 - Console errors often include stack traces pointing to the exact source line
@@ -73,6 +76,19 @@ The bridge is injected into the page, so you see framework state, not just the r
 - \`set_style\` previews CSS fixes live, but it's also a quick way to show the user something:
   outline or highlight an element you're explaining (they can see the live page), then call
   \`reset_overrides\` to undo it
+- \`set_attribute\` can force a component into a state you can't easily reach: flip
+  \`aria-expanded\`, \`open\`, \`disabled\`, \`hidden\`, or a \`class\`/\`data-*\` to open a dropdown,
+  expand an accordion, or unhide an element so you can inspect what it renders, without driving
+  the exact trigger sequence
+- \`hover\` mounts hover-only UI (tooltips, popovers, submenus) that isn't in the DOM otherwise;
+  hover the trigger, then \`query_dom\`/\`get_html\`/\`inspect_element\` to read what appeared
+- When a click "does nothing", suspect layout before logic: \`inspect_element\`'s rect shows
+  whether the target is off-screen, zero-size, or sitting under another element (compare
+  overlapping rects and z-index) before you go hunting for a handler bug
+- \`press_key\` is for more than typing: Tab repeatedly to audit focus order and catch keyboard
+  traps, Escape to close modals, Enter to submit
+- \`fill\` dispatches real input events from inside the page, so React/Vue controlled inputs and
+  their validation actually react (setting \`.value\` from devtools wouldn't trigger that)
 `;
 
 export async function startServer(port = 8765): Promise<void> {
