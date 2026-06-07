@@ -1,7 +1,15 @@
+import { readFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { BridgeClient } from "./bridge-client.js";
+
+// Single source of truth for the advertised version: read it from the package's
+// own package.json at runtime (resolves to the package root in dev and when
+// published) instead of duplicating the literal here.
+const { version: VERSION } = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+) as { version: string };
 
 type ToolResult = { content: Array<{ type: "text"; text: string }>; isError?: true };
 
@@ -66,7 +74,7 @@ The bridge is injected into the page, so you see framework state, not just the r
 
 export async function startServer(port = 8765): Promise<void> {
   const bridge = new BridgeClient(port);
-  const server = new McpServer({ name: "feedthrough", version: "0.3.0" });
+  const server = new McpServer({ name: "feedthrough", version: VERSION });
 
   server.registerTool(
     "get_instructions",
