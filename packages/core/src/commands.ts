@@ -359,9 +359,16 @@ function occlusionInfo(
   rect: DOMRect,
 ): { hittable: boolean; occludedBy?: Record<string, unknown> } | undefined {
   if (rect.width === 0 || rect.height === 0) return undefined;
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
-  if (cx < 0 || cy < 0 || cx > window.innerWidth || cy > window.innerHeight) return undefined;
+  // Sample the centre of the element's visible region (its intersection with the
+  // viewport), clamped strictly inside it: elementFromPoint treats a point on the
+  // far edge (x === innerWidth / y === innerHeight) as outside and returns null.
+  const left = Math.max(rect.left, 0);
+  const top0 = Math.max(rect.top, 0);
+  const right = Math.min(rect.right, window.innerWidth - 1);
+  const bottom = Math.min(rect.bottom, window.innerHeight - 1);
+  if (right < left || bottom < top0) return undefined; // no visible area to hit-test
+  const cx = (left + right) / 2;
+  const cy = (top0 + bottom) / 2;
 
   const top = document.elementFromPoint(cx, cy);
   if (!top) return undefined;
