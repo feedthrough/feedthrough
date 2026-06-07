@@ -277,26 +277,48 @@ function ancestorChain(el: Element): string {
   return parts.join(" > ");
 }
 
-// Detect when the element is cut off by an ancestor's clipping context
-// (overflow:hidden/scroll/auto/clip) even though the element itself renders fine —
-// e.g. a dropdown clipped by a panel, or content scrolled out of a container. This
-// is distinct from inViewport (viewport-level) and from occlusion (z-order).
-// Reports the nearest clipping ancestor and which edges are cut. Best-effort: a
-// position:fixed element escapes overflow clipping, so it's skipped.
 // Cap ancestor walks so a pathologically deep DOM can't make inspect_element do
 // unbounded synchronous work — real hiding/clipping wrappers are always near.
 const MAX_ANCESTOR_WALK = 50;
 
+// Does this element establish a containing block for position:fixed descendants?
+// (a transform/perspective/filter/backdrop-filter, the matching will-change hints,
+// or paint/layout containment.) When one exists, a fixed descendant is clipped
+// relative to it instead of escaping to the viewport.
+function establishesFixedContainingBlock(cs: CSSStyleDeclaration): boolean {
+  if (cs.transform !== "none") return true;
+  if (cs.perspective !== "none") return true;
+  if (cs.filter !== "none") return true;
+  const backdrop = cs.getPropertyValue("backdrop-filter");
+  if (backdrop && backdrop !== "none") return true;
+  if (/transform|perspective|filter/.test(cs.willChange)) return true;
+  if (/paint|layout|strict|content/.test(cs.contain)) return true;
+  return false;
+}
+
+// Detect when the element is cut off by an ancestor's clipping context
+// (overflow:hidden/scroll/auto/clip) even though the element itself renders fine —
+// e.g. a dropdown clipped by a panel, or content scrolled out of a container. This
+// is distinct from inViewport (viewport-level) and from occlusion (z-order).
+// Reports the nearest clipping ancestor and which edges are cut. A position:fixed
+// element escapes overflow clipping unless an ancestor establishes a containing
+// block for it; clipping then begins at that ancestor.
 function clippedByAncestor(
   el: Element,
   rect: DOMRect,
   cs: CSSStyleDeclaration,
 ): { by: string; edges: string[] } | undefined {
-  if (cs.position === "fixed") return undefined;
   const tol = 1;
+  // For a fixed element, overflow ancestors don't clip until we reach its
+  // containing block; for everything else, clipping applies from the parent up.
+  let clipping = cs.position !== "fixed";
   let node = el.parentElement;
   for (let depth = 0; node && depth < MAX_ANCESTOR_WALK; node = node.parentElement, depth++) {
     const acs = window.getComputedStyle(node);
+    if (!clipping) {
+      if (establishesFixedContainingBlock(acs)) clipping = true;
+      else continue;
+    }
     const clipsX = acs.overflowX !== "visible";
     const clipsY = acs.overflowY !== "visible";
     if (!clipsX && !clipsY) continue;

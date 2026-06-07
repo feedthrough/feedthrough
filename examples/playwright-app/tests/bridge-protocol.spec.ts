@@ -333,6 +333,15 @@ test("inspect_element reports ancestor path, clipped-by-ancestor, and pseudo con
   const clip = await server.command<Inspected>("inspect", { selector: "#refresh-btn" });
   expect(clip.clipped?.by).toContain("section#feed-section");
   expect(clip.clipped?.edges).toContain("bottom");
+
+  // A viewport-fixed element (no containing-block ancestor) escapes overflow
+  // clipping, so no clipped info is reported even past the clipping ancestor.
+  await server.command("set_style", {
+    selector: "#refresh-btn",
+    properties: { position: "fixed" },
+  });
+  const fixed = await server.command<Inspected>("inspect", { selector: "#refresh-btn" });
+  expect(fixed.clipped).toBeUndefined();
   await server.command("reset_overrides");
 });
 
