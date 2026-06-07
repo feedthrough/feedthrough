@@ -43,6 +43,11 @@ function shutdown(code) {
   if (finished) return;
   finished = true;
   clearTimeout(timer);
+  // If the child has already exited (e.g. shutdown was called from its own exit
+  // handler), exit now — a fresh once("exit") would never fire.
+  if (child.exitCode !== null || child.signalCode !== null) {
+    process.exit(code);
+  }
   child.once("exit", () => process.exit(code));
   child.kill("SIGTERM");
   setTimeout(() => child.kill("SIGKILL"), 2000).unref();
