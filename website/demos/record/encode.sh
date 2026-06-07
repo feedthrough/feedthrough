@@ -10,7 +10,7 @@ OUT="../../public"
 mkdir -p "$OUT"
 
 DEMOS=("$@")
-[ ${#DEMOS[@]} -eq 0 ] && DEMOS=(list button)
+[ ${#DEMOS[@]} -eq 0 ] && DEMOS=(list button occlusion)
 
 # Playwright starts capturing on the blank pre-render page (a white frame), which
 # would flash on every loop. Skip the first fraction of a second so each clip

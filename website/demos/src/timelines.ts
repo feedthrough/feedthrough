@@ -73,3 +73,56 @@ export const buttonTimeline: Step[] = [
   },
   { kind: "agent", text: "Saved. It survives a reload now, not just the live preview." },
 ];
+
+// ── Demo 3: occlusion — an invisible container covering the dialog buttons ───
+
+export const occlusionTimeline: Step[] = [
+  { kind: "user", text: "I click the Discard button and nothing happens." },
+  {
+    kind: "agent",
+    text: "The button looks fine and enabled. Let me hit-test it — something may be intercepting the click.",
+  },
+  { kind: "tool", name: "inspect_element", arg: '".discard"' },
+  {
+    kind: "code",
+    label: 'inspect_element ".discard"',
+    lines: [
+      { text: "{" },
+      { text: '  "visible": true,' },
+      { text: '  "hittable": false,' },
+      { text: '  "occludedBy": { "tag": "div", "classes": ["message"] }' },
+      { text: "}" },
+    ],
+  },
+  {
+    kind: "agent",
+    text: "Visible but not hittable — a div.message is sitting on top of it. Let me highlight that element so you can see it.",
+  },
+  {
+    kind: "tool",
+    name: "set_style",
+    arg: ".message { outline: 2px dashed red }",
+    do: api => api.revealOverlap(),
+  },
+  { kind: "pause", ms: 500 },
+  {
+    kind: "agent",
+    text: "That container extends below its text and covers both buttons, so your click lands on it, not the button.",
+  },
+  { kind: "user", text: "Fix it." },
+  { kind: "tool", name: "edit", arg: "Dialog.css", do: api => api.fixOverlap() },
+  {
+    kind: "code",
+    label: "Dialog.css",
+    lines: [
+      { text: ".message {" },
+      { text: "  padding-bottom: 60px;", kind: "del" },
+      { text: "  margin-bottom: -60px;", kind: "del" },
+      { text: "  margin-bottom: 18px;", kind: "add" },
+      { text: "}" },
+    ],
+  },
+  { kind: "agent", text: "Trimmed the container off the buttons. Re-checking the hit-test…" },
+  { kind: "tool", name: "inspect_element", arg: '".discard"' },
+  { kind: "agent", text: "hittable: true now — the buttons take clicks again. Fixed." },
+];

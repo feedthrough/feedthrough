@@ -307,3 +307,82 @@ body {
   width: auto;
   padding: 14px 28px;
 }
+
+/* ── Occlusion demo (confirm dialog) ───────────────────────────────────── */
+
+.dialog {
+  position: relative;
+}
+.dialog .message {
+  margin: 0 0 18px;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  border-radius: 8px;
+}
+/* The bug: the text container is padded far past its text, then pulled back up
+   with a negative margin. Its invisible box sits on top of the buttons (it's a
+   positioned stacking context) and swallows their clicks. */
+.dialog .message-bug {
+  position: relative;
+  z-index: 1;
+  padding-bottom: 60px;
+  margin-bottom: -60px;
+}
+/* What inspect_element surfaces as occludedBy — outlined for the recording. */
+.dialog .message-revealed {
+  outline: 2px dashed var(--red);
+  outline-offset: 2px;
+  background: rgba(248, 113, 113, 0.07);
+}
+.message-tag {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--red);
+  background: var(--bg-code);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.btn {
+  padding: 10px 18px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+.btn-danger {
+  background: var(--red);
+  color: #1a0606;
+  border-color: transparent;
+}
+/* brief "reachable now" pulse on the button once the overlap is removed */
+@keyframes reachable {
+  0% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(52, 211, 153, 0);
+  }
+}
+.btn-reachable {
+  animation: reachable 0.9s ease-out;
+}
