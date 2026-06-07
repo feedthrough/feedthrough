@@ -25,13 +25,20 @@ export class Transport {
     const ws = new WebSocket(this.url);
     this.ws = ws;
 
+    // A stale socket (one replaced by a later connect()) must not mutate shared
+    // state — otherwise its onclose could flip us to disconnected and schedule a
+    // spurious reconnect while a newer socket is live.
+    const isCurrent = () => this.ws === ws;
+
     ws.onopen = () => {
+      if (!isCurrent()) return;
       this.onStatus(true);
       for (const msg of this.queue) ws.send(msg);
       this.queue = [];
     };
 
     ws.onmessage = event => {
+      if (!isCurrent()) return;
       try {
         this.onMessage(JSON.parse(event.data as string));
       } catch {
@@ -40,6 +47,7 @@ export class Transport {
     };
 
     ws.onclose = () => {
+      if (!isCurrent()) return;
       this.onStatus(false);
       if (!this.destroyed) {
         this.reconnectTimer = setTimeout(() => this.connect(), this.reconnectDelay);
