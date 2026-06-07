@@ -535,7 +535,9 @@ function accessibilityInfo(el: Element): Record<string, unknown> | undefined {
     "aria-disabled",
   ]) {
     const v = el.getAttribute(attr);
-    if (v !== null) states[attr.slice(5)] = v;
+    // Normalise "true"/"false" to booleans for a stable type, but keep token
+    // values intact (aria-checked/pressed can be "mixed", aria-current a token).
+    if (v !== null) states[attr.slice(5)] = v === "true" ? true : v === "false" ? false : v;
   }
   if (el.getAttribute("aria-hidden") === "true") states.hidden = true;
   if ("disabled" in el && (el as { disabled?: boolean }).disabled) states.disabled = true;

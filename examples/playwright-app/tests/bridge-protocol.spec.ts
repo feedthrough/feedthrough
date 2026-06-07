@@ -248,6 +248,23 @@ test("inspect_element reports a11y, effective visibility, and hittability", asyn
   const input = await server.command<Inspected>("inspect", { selector: "#search-input" });
   expect(input.a11y?.role).toBe("textbox");
 
+  // ARIA "true"/"false" normalise to booleans, and native disabled reports as a
+  // boolean too — a stable type for consumers (not a mix of string and boolean).
+  await server.command("set_attribute", {
+    selector: "#record-view-btn",
+    name: "aria-expanded",
+    value: "false",
+  });
+  await server.command("set_attribute", {
+    selector: "#record-view-btn",
+    name: "disabled",
+    value: "",
+  });
+  const aria = await server.command<Inspected>("inspect", { selector: "#record-view-btn" });
+  expect(aria.a11y?.states?.expanded).toBe(false);
+  expect(aria.a11y?.states?.disabled).toBe(true);
+  await server.command("reset_overrides");
+
   // Hiding an ancestor makes the element not visible, and the reason names the
   // cause walked up the tree.
   await server.command("set_style", { selector: "#feed-section", properties: { display: "none" } });
