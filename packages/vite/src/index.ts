@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
-import type { HtmlTagDescriptor, Plugin } from "vite";
 import type { BridgeOptions } from "@feedthrough/core";
+import type { HtmlTagDescriptor, Plugin } from "vite";
 
 const MODULE_ID = "virtual:feedthrough";
 const RESOLVED_ID = "\0virtual:feedthrough";

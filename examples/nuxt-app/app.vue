@@ -52,15 +52,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { computed, ref } from "vue";
 
 const team = [
-  { id: 1, name: "Alice Chen",   department: "Platform" },
-  { id: 2, name: "Bob Martinez", department: "Product"  },
-  { id: 3, name: "Carol Smith",  department: "Platform" },
-  { id: 4, name: "David Kim",    department: "Product"  },
-  { id: 5, name: "Eve Johnson",  department: "Data"     },
-  { id: 6, name: "Frank Lee",    department: "Data"     },
+  { id: 1, name: "Alice Chen", department: "Platform" },
+  { id: 2, name: "Bob Martinez", department: "Product" },
+  { id: 3, name: "Carol Smith", department: "Platform" },
+  { id: 4, name: "David Kim", department: "Product" },
+  { id: 5, name: "Eve Johnson", department: "Data" },
+  { id: 6, name: "Frank Lee", department: "Data" },
 ];
 
 // Counter
@@ -74,10 +74,11 @@ function recordView() {
 // Search
 const query = ref("");
 const filteredTeam = computed(() =>
-  team.filter(m =>
-    m.name.includes(query.value) || // BUG: missing .toLowerCase() on m.name
-    m.department.toLowerCase().includes(query.value.toLowerCase())
-  )
+  team.filter(
+    m =>
+      m.name.includes(query.value) || // BUG: missing .toLowerCase() on m.name
+      m.department.toLowerCase().includes(query.value.toLowerCase()),
+  ),
 );
 function onSearch() {
   console.log("searching team for:", query.value);

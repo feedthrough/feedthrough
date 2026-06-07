@@ -16,8 +16,8 @@
  * If the bridge regresses — transport, interceptors, or command dispatch — these
  * tests fail. demo.spec.ts would stay green.
  */
-import { setupFeedthrough, expect } from "@feedthrough/playwright";
-import { WebSocketServer, WebSocket } from "ws";
+import { expect, setupFeedthrough } from "@feedthrough/playwright";
+import { type WebSocket, WebSocketServer } from "ws";
 
 const PORT = 8799;
 
@@ -34,22 +34,33 @@ class TestBridgeServer {
   private readonly wss: WebSocketServer;
   private socket: WebSocket | null = null;
   private received: BridgeMessage[] = [];
-  private waiters: Array<{ match: (m: BridgeMessage) => boolean; resolve: (m: BridgeMessage) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }> = [];
+  private waiters: Array<{
+    match: (m: BridgeMessage) => boolean;
+    resolve: (m: BridgeMessage) => void;
+    reject: (e: Error) => void;
+    timer: ReturnType<typeof setTimeout>;
+  }> = [];
   private connectionWaiters: Array<() => void> = [];
   private cmdId = 0;
 
   constructor(port: number) {
     this.wss = new WebSocketServer({ port });
-    this.wss.on("connection", (ws) => {
+    this.wss.on("connection", ws => {
       this.socket = ws;
       this.received = []; // fresh page → fresh capture buffer
       const waiters = this.connectionWaiters;
       this.connectionWaiters = [];
-      waiters.forEach((r) => r());
+      waiters.forEach(r => {
+        r();
+      });
 
-      ws.on("message", (data) => {
+      ws.on("message", data => {
         let msg: BridgeMessage;
-        try { msg = JSON.parse(data.toString()); } catch { return; }
+        try {
+          msg = JSON.parse(data.toString());
+        } catch {
+          return;
+        }
         this.received.push(msg);
         for (let i = this.waiters.length - 1; i >= 0; i--) {
           if (this.waiters[i].match(msg)) {
@@ -64,7 +75,7 @@ class TestBridgeServer {
 
   /** Resolves when the *next* browser connection is established. Call before page.goto. */
   nextConnection(): Promise<void> {
-    return new Promise((resolve) => this.connectionWaiters.push(resolve));
+    return new Promise(resolve => this.connectionWaiters.push(resolve));
   }
 
   /** Wait for an unprompted message (hello, or a command result). */
@@ -73,7 +84,7 @@ class TestBridgeServer {
     if (existing) return Promise.resolve(existing);
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
-        this.waiters = this.waiters.filter((w) => w.timer !== timer);
+        this.waiters = this.waiters.filter(w => w.timer !== timer);
         reject(new Error("timed out waiting for a matching bridge message"));
       }, timeout);
       this.waiters.push({ match, resolve, reject, timer });
@@ -82,8 +93,9 @@ class TestBridgeServer {
 
   async command<T = unknown>(action: string, params: Record<string, unknown> = {}): Promise<T> {
     const id = `test-cmd-${++this.cmdId}`;
-    const result = this.waitFor((m) => m.type === "result" && m.commandId === id);
-    this.socket!.send(JSON.stringify({ type: "command", id, action, ...params }));
+    const result = this.waitFor(m => m.type === "result" && m.commandId === id);
+    if (!this.socket) throw new Error("no browser connection established");
+    this.socket.send(JSON.stringify({ type: "command", id, action, ...params }));
     const res = await result;
     if (!res.ok) throw new Error(`command ${action} failed: ${res.error}`);
     return res.value as T;
@@ -105,12 +117,12 @@ class TestBridgeServer {
       const value = await this.command<T>(action, params);
       if (predicate(value)) return value;
       if (Date.now() > deadline) throw new Error(`poll for ${action} timed out`);
-      await new Promise((r) => setTimeout(r, interval));
+      await new Promise(r => setTimeout(r, interval));
     }
   }
 
   close(): Promise<void> {
-    return new Promise((resolve) => this.wss.close(() => resolve()));
+    return new Promise(resolve => this.wss.close(() => resolve()));
   }
 }
 
@@ -118,15 +130,19 @@ const test = setupFeedthrough({ serverUrl: `ws://localhost:${PORT}` });
 
 let server: TestBridgeServer;
 
-test.beforeAll(() => { server = new TestBridgeServer(PORT); });
-test.afterAll(async () => { await server.close(); });
+test.beforeAll(() => {
+  server = new TestBridgeServer(PORT);
+});
+test.afterAll(async () => {
+  await server.close();
+});
 
 // Establish a fresh bridge connection for each test and wait for the hello.
 test.beforeEach(async ({ page }) => {
   const connected = server.nextConnection();
   await page.goto("/");
   await connected;
-  await server.waitFor((m) => m.type === "hello");
+  await server.waitFor(m => m.type === "hello");
 });
 
 type ConsoleEntry = { level: string; method?: string; args: unknown[]; stack?: string };
@@ -142,29 +158,40 @@ type NetEntry = {
 };
 
 test("transport connects and announces the page URL", async () => {
-  const hello = await server.waitFor((m) => m.type === "hello");
+  const hello = await server.waitFor(m => m.type === "hello");
   expect(hello.url).toContain("localhost:4173");
 });
 
 test("query_dom returns every matching element", async () => {
-  const rows = await server.command<Array<{ tag: string }>>("query_dom", { selector: "#member-list li" });
+  const rows = await server.command<Array<{ tag: string }>>("query_dom", {
+    selector: "#member-list li",
+  });
   expect(rows).toHaveLength(6); // six team members rendered on load
   expect(rows[0].tag).toBe("li");
 });
 
 test("click dispatches a real click and the DOM mutates", async () => {
-  const clicked = await server.command<{ tag: string; id: string | null }>("click", { selector: "#record-view-btn" });
+  const clicked = await server.command<{ tag: string; id: string | null }>("click", {
+    selector: "#record-view-btn",
+  });
   expect(clicked).toMatchObject({ tag: "button", id: "record-view-btn" });
 
-  const counter = await server.command<{ textContent?: string }>("inspect", { selector: "#view-count" });
+  const counter = await server.command<{ textContent?: string }>("inspect", {
+    selector: "#view-count",
+  });
   expect(counter.textContent).toBe("2"); // app's off-by-one bug: one click adds 2
 });
 
 test("fill sets the value and fires input/change so the app reacts", async () => {
-  const filled = await server.command<{ tag: string; value: string }>("fill", { selector: "#search-input", value: "Alice" });
+  const filled = await server.command<{ tag: string; value: string }>("fill", {
+    selector: "#search-input",
+    value: "Alice",
+  });
   expect(filled).toMatchObject({ tag: "input", value: "Alice" });
 
-  const count = await server.command<{ textContent?: string }>("inspect", { selector: "#result-count" });
+  const count = await server.command<{ textContent?: string }>("inspect", {
+    selector: "#result-count",
+  });
   expect(count.textContent).toContain("1 of 6"); // input handler ran and filtered the list
 });
 
@@ -198,64 +225,211 @@ test("inspect_element returns styles, live form state, and requested props", asy
 
   // Requested props come back under `requested`.
   expect(info.requested?.["box-sizing"]).toBe("border-box");
-  expect(typeof info.requested?.["cursor"]).toBe("string");
+  expect(typeof info.requested?.cursor).toBe("string");
+});
+
+test("inspect_element reports a11y, effective visibility, and hittability", async () => {
+  type Inspected = {
+    visible: boolean;
+    hiddenReason?: string;
+    hittable?: boolean;
+    a11y?: { role?: string; name?: string; states?: Record<string, unknown> };
+  };
+
+  // A plain, visible, unobstructed button: resolved role + accessible name,
+  // visible true, hittable true.
+  const btn = await server.command<Inspected>("inspect", { selector: "#record-view-btn" });
+  expect(btn.a11y?.role).toBe("button");
+  expect(btn.a11y?.name).toBe("Record View");
+  expect(btn.visible).toBe(true);
+  expect(btn.hittable).toBe(true);
+
+  // A text input resolves to the textbox role.
+  const input = await server.command<Inspected>("inspect", { selector: "#search-input" });
+  expect(input.a11y?.role).toBe("textbox");
+
+  // ARIA "true"/"false" normalise to booleans, and native disabled reports as a
+  // boolean too — a stable type for consumers (not a mix of string and boolean).
+  await server.command("set_attribute", {
+    selector: "#record-view-btn",
+    name: "aria-expanded",
+    value: "false",
+  });
+  await server.command("set_attribute", {
+    selector: "#record-view-btn",
+    name: "disabled",
+    value: "",
+  });
+  const aria = await server.command<Inspected>("inspect", { selector: "#record-view-btn" });
+  expect(aria.a11y?.states?.expanded).toBe(false);
+  expect(aria.a11y?.states?.disabled).toBe(true);
+  await server.command("reset_overrides");
+
+  // A <section> is only a 'region' landmark once it has an accessible name.
+  const unnamedSection = await server.command<Inspected>("inspect", {
+    selector: "#counter-section",
+  });
+  expect(unnamedSection.a11y?.role).toBeUndefined();
+  // A container does not take its name from wrapped text, so none is invented.
+  expect(unnamedSection.a11y?.name).toBeUndefined();
+  await server.command("set_attribute", {
+    selector: "#counter-section",
+    name: "aria-label",
+    value: "Page views",
+  });
+  const namedSection = await server.command<Inspected>("inspect", { selector: "#counter-section" });
+  expect(namedSection.a11y?.role).toBe("region");
+  expect(namedSection.a11y?.name).toBe("Page views");
+  await server.command("reset_overrides");
+
+  // Hiding an ancestor makes the element not visible, and the reason names the
+  // cause walked up the tree.
+  await server.command("set_style", { selector: "#feed-section", properties: { display: "none" } });
+  const hidden = await server.command<Inspected>("inspect", { selector: "#refresh-btn" });
+  expect(hidden.visible).toBe(false);
+  expect(hidden.hiddenReason).toContain("display:none");
+  await server.command("reset_overrides");
+});
+
+test("inspect_element reports overflow and occlusion", async () => {
+  type Inspected = {
+    overflow?: { x: boolean; y: boolean; scrollWidth: number; clientWidth: number };
+    hittable?: boolean;
+    occludedBy?: { tag: string; id: string | null };
+  };
+
+  // Force horizontal overflow: a narrow, non-wrapping, clipped box whose text
+  // is wider than its content area.
+  await server.command("set_style", {
+    selector: "#feed-status",
+    properties: { width: "20px", "white-space": "nowrap", overflow: "hidden" },
+  });
+  const ov = await server.command<Inspected>("inspect", { selector: "#feed-status" });
+  expect(ov.overflow?.x).toBe(true);
+  const o = ov.overflow;
+  expect(o).toBeDefined();
+  if (o) expect(o.scrollWidth).toBeGreaterThan(o.clientWidth);
+  await server.command("reset_overrides");
+
+  // pointer-events:none makes the element non-hittable; the center-point
+  // hit-test lands on whatever is behind it. Use a top-of-page button so its
+  // center is reliably within the viewport.
+  await server.command("set_style", {
+    selector: "#record-view-btn",
+    properties: { "pointer-events": "none" },
+  });
+  const occ = await server.command<Inspected>("inspect", { selector: "#record-view-btn" });
+  expect(occ.hittable).toBe(false);
+  expect(occ.occludedBy).toBeTruthy();
+  await server.command("reset_overrides");
+});
+
+test("inspect_element reports ancestor path, clipped-by-ancestor, and pseudo content", async () => {
+  type Inspected = {
+    path: string;
+    clipped?: { by: string; edges: string[] };
+    pseudo?: Record<string, string>;
+  };
+
+  // The ancestor path gives compact structural context ending at the element.
+  const btn = await server.command<Inspected>("inspect", { selector: "#record-view-btn" });
+  expect(typeof btn.path).toBe("string");
+  expect(btn.path).toContain("button#record-view-btn");
+  expect(btn.path).toContain("section#counter-section");
+
+  // ::before content set via CSS is otherwise invisible to DOM inspection.
+  const probe = await server.command<Inspected>("inspect", { selector: "#pseudo-probe" });
+  expect(probe.pseudo?.["::before"]).toContain("★");
+
+  // Collapsing an ancestor's height with overflow:hidden clips the child, even
+  // though the child itself renders fine.
+  await server.command("set_style", {
+    selector: "#feed-section",
+    properties: { overflow: "hidden", height: "5px" },
+  });
+  const clip = await server.command<Inspected>("inspect", { selector: "#refresh-btn" });
+  expect(clip.clipped?.by).toContain("section#feed-section");
+  expect(clip.clipped?.edges).toContain("bottom");
+
+  // A viewport-fixed element (no containing-block ancestor) escapes overflow
+  // clipping, so no clipped info is reported even past the clipping ancestor.
+  await server.command("set_style", {
+    selector: "#refresh-btn",
+    properties: { position: "fixed" },
+  });
+  const fixed = await server.command<Inspected>("inspect", { selector: "#refresh-btn" });
+  expect(fixed.clipped).toBeUndefined();
+  await server.command("reset_overrides");
 });
 
 test("set_style applies inline CSS live and returns a preview note", async () => {
-  const res = await server.command<{ applied: Record<string, string>; note: string }>(
-    "set_style",
-    { selector: "#record-view-btn", properties: { "font-size": "13px", "white-space": "nowrap" } },
-  );
+  const res = await server.command<{ applied: Record<string, string>; note: string }>("set_style", {
+    selector: "#record-view-btn",
+    properties: { "font-size": "13px", "white-space": "nowrap" },
+  });
   expect(res.applied["font-size"]).toBe("13px");
   expect(res.note.toLowerCase()).toContain("preview");
 
   // Confirm it actually landed on the element.
-  const info = await server.command<{ requested?: Record<string, string> }>(
-    "inspect", { selector: "#record-view-btn", properties: ["font-size", "white-space"] },
-  );
+  const info = await server.command<{ requested?: Record<string, string> }>("inspect", {
+    selector: "#record-view-btn",
+    properties: ["font-size", "white-space"],
+  });
   expect(info.requested?.["font-size"]).toBe("13px");
   expect(info.requested?.["white-space"]).toBe("nowrap");
 });
 
 test("set_attribute sets and removes, warning on framework-owned attrs", async () => {
   // A framework-owned attribute carries a clobber warning.
-  const cls = await server.command<{ frameworkWarning?: string }>(
-    "set_attribute", { selector: "#record-view-btn", name: "class", value: "preview-cls" },
-  );
+  const cls = await server.command<{ frameworkWarning?: string }>("set_attribute", {
+    selector: "#record-view-btn",
+    name: "class",
+    value: "preview-cls",
+  });
   expect(cls.frameworkWarning).toBeTruthy();
-  let info = await server.command<{ classes: string[] }>("inspect", { selector: "#record-view-btn" });
+  let info = await server.command<{ classes: string[] }>("inspect", {
+    selector: "#record-view-btn",
+  });
   expect(info.classes).toContain("preview-cls");
 
   // A plain attribute does not warn; null removes it.
   const data = await server.command<{ frameworkWarning?: string; value: unknown }>(
-    "set_attribute", { selector: "#record-view-btn", name: "data-preview", value: "1" },
+    "set_attribute",
+    { selector: "#record-view-btn", name: "data-preview", value: "1" },
   );
   expect(data.frameworkWarning).toBeUndefined();
   info = await server.command<{ classes: string[] }>("inspect", { selector: "#record-view-btn" });
 
-  const removed = await server.command<{ removed: boolean }>(
-    "set_attribute", { selector: "#record-view-btn", name: "data-preview", value: null },
-  );
+  const removed = await server.command<{ removed: boolean }>("set_attribute", {
+    selector: "#record-view-btn",
+    name: "data-preview",
+    value: null,
+  });
   expect(removed.removed).toBe(true);
-  const after = await server.command<{ attributes: Record<string, string> }>(
-    "inspect", { selector: "#record-view-btn" },
-  );
+  const after = await server.command<{ attributes: Record<string, string> }>("inspect", {
+    selector: "#record-view-btn",
+  });
   expect(after.attributes["data-preview"]).toBeUndefined();
 });
 
 test("set_text replaces content and always warns about framework clobber", async () => {
-  const res = await server.command<{ text: string; frameworkWarning?: string }>(
-    "set_text", { selector: "#record-view-btn", text: "Tally a view" },
-  );
+  const res = await server.command<{ text: string; frameworkWarning?: string }>("set_text", {
+    selector: "#record-view-btn",
+    text: "Tally a view",
+  });
   expect(res.frameworkWarning).toBeTruthy();
-  const info = await server.command<{ textContent?: string }>("inspect", { selector: "#record-view-btn" });
+  const info = await server.command<{ textContent?: string }>("inspect", {
+    selector: "#record-view-btn",
+  });
   expect(info.textContent).toBe("Tally a view");
 });
 
 test("reset_overrides rolls back every live edit", async () => {
-  const before = await server.command<{ textContent?: string; attributes: Record<string, string>; styles: Record<string, string> }>(
-    "inspect", { selector: "#refresh-btn", properties: ["opacity"] },
-  );
+  const before = await server.command<{
+    textContent?: string;
+    attributes: Record<string, string>;
+    styles: Record<string, string>;
+  }>("inspect", { selector: "#refresh-btn", properties: ["opacity"] });
 
   await server.command("set_style", { selector: "#refresh-btn", properties: { opacity: "0.3" } });
   await server.command("set_attribute", { selector: "#refresh-btn", name: "data-x", value: "y" });
@@ -264,34 +438,35 @@ test("reset_overrides rolls back every live edit", async () => {
   const reset = await server.command<{ reverted: number }>("reset_overrides");
   expect(reset.reverted).toBeGreaterThanOrEqual(3);
 
-  const after = await server.command<{ textContent?: string; attributes: Record<string, string>; requested?: Record<string, string> }>(
-    "inspect", { selector: "#refresh-btn", properties: ["opacity"] },
-  );
+  const after = await server.command<{
+    textContent?: string;
+    attributes: Record<string, string>;
+    requested?: Record<string, string>;
+  }>("inspect", { selector: "#refresh-btn", properties: ["opacity"] });
   expect(after.textContent).toBe(before.textContent);
   expect(after.attributes["data-x"]).toBeUndefined();
   // opacity inline override removed → back to the stylesheet/computed default
-  expect(after.requested?.["opacity"]).toBe("1");
+  expect(after.requested?.opacity).toBe("1");
 });
 
 test("console output is intercepted and retrievable", async () => {
   await server.command("click", { selector: "#record-view-btn" });
 
-  const logs = await server.poll<ConsoleEntry[]>(
-    "get_console_logs", {},
-    (l) => l.some((e) => JSON.stringify(e.args).includes("page view recorded")),
+  const logs = await server.poll<ConsoleEntry[]>("get_console_logs", {}, l =>
+    l.some(e => JSON.stringify(e.args).includes("page view recorded")),
   );
-  const entry = logs.find((e) => JSON.stringify(e.args).includes("page view recorded"))!;
+  // biome-ignore lint/style/noNonNullAssertion: the log entry is guaranteed present in this scenario
+  const entry = logs.find(e => JSON.stringify(e.args).includes("page view recorded"))!;
   expect(entry.level).toBe("log");
 });
 
 test("network requests are intercepted", async () => {
   await server.command("click", { selector: "#refresh-btn" });
 
-  const requests = await server.poll<NetEntry[]>(
-    "get_network_requests", { filter: "events" },
-    (r) => r.some((req) => req.url.includes("/api/events")),
+  const requests = await server.poll<NetEntry[]>("get_network_requests", { filter: "events" }, r =>
+    r.some(req => req.url.includes("/api/events")),
   );
-  expect(requests.some((r) => r.url.includes("/api/events"))).toBe(true);
+  expect(requests.some(r => r.url.includes("/api/events"))).toBe(true);
 });
 
 test("a rejected fetch is recorded with an error field", async ({ page }) => {
@@ -300,16 +475,16 @@ test("a rejected fetch is recorded with an error field", async ({ page }) => {
     fetch("/api/never", { signal: AbortSignal.abort() }).catch(() => {});
   });
 
-  const requests = await server.poll<NetEntry[]>(
-    "get_network_requests", { filter: "never" },
-    (r) => r.some((req) => req.url.includes("/api/never") && typeof req.error === "string"),
+  const requests = await server.poll<NetEntry[]>("get_network_requests", { filter: "never" }, r =>
+    r.some(req => req.url.includes("/api/never") && typeof req.error === "string"),
   );
-  const failed = requests.find((r) => r.url.includes("/api/never"))!;
+  // biome-ignore lint/style/noNonNullAssertion: the request is guaranteed present in this scenario
+  const failed = requests.find(r => r.url.includes("/api/never"))!;
   expect(String(failed.error).toLowerCase()).toMatch(/abort/);
 });
 
 test("request and response bodies + headers are captured", async ({ page }) => {
-  await page.route("**/api/echo", (route) =>
+  await page.route("**/api/echo", route =>
     route.fulfill({
       status: 200,
       headers: { "content-type": "application/json", "x-echoed": "yes" },
@@ -326,11 +501,11 @@ test("request and response bodies + headers are captured", async ({ page }) => {
     await res.text();
   });
 
-  const reqs = await server.poll<NetEntry[]>(
-    "get_network_requests", { filter: "echo" },
-    (r) => r.some((req) => req.url.includes("/api/echo") && typeof req.responseBody === "string"),
+  const reqs = await server.poll<NetEntry[]>("get_network_requests", { filter: "echo" }, r =>
+    r.some(req => req.url.includes("/api/echo") && typeof req.responseBody === "string"),
   );
-  const req = reqs.find((r) => r.url.includes("/api/echo"))!;
+  // biome-ignore lint/style/noNonNullAssertion: the request is guaranteed present in this scenario
+  const req = reqs.find(r => r.url.includes("/api/echo"))!;
   expect(req.method).toBe("POST");
   expect(req.requestBody).toBe(JSON.stringify({ ping: "pong" }));
   expect(req.requestHeaders?.["x-test"]).toBe("hi");
@@ -340,25 +515,28 @@ test("request and response bodies + headers are captured", async ({ page }) => {
 
 test("response body is truncated when it exceeds the cap", async ({ page }) => {
   const huge = "x".repeat(20_000);
-  await page.route("**/api/big", (route) =>
+  await page.route("**/api/big", route =>
     route.fulfill({ status: 200, contentType: "text/plain", body: huge }),
   );
 
-  await page.evaluate(() => fetch("/api/big").then((r) => r.text()));
+  await page.evaluate(() => fetch("/api/big").then(r => r.text()));
 
   const reqs = await server.poll<NetEntry[]>(
-    "get_network_requests", { filter: "big" },
-    (r) => r.some((req) => req.url.includes("/api/big") && typeof req.responseBody === "string"),
+    "get_network_requests",
+    { filter: "big" },
+    r => r.some(req => req.url.includes("/api/big") && typeof req.responseBody === "string"),
     { timeout: 7000 },
   );
-  const body = String(reqs.find((r) => r.url.includes("/api/big"))!.responseBody);
+  const req = reqs.find(r => r.url.includes("/api/big"));
+  if (!req) throw new Error("expected /api/big request to be captured");
+  const body = String(req.responseBody);
   expect(body).toContain("truncated");
   expect(body.length).toBeLessThan(11_000); // 10 KB cap + small truncation marker
 });
 
 test("an SSE / event-stream response is not buffered as a body", async ({ page }) => {
   // A never-ending text/event-stream must be summarised, never read into memory.
-  await page.route("**/api/stream", async (route) => {
+  await page.route("**/api/stream", async route => {
     await route.fulfill({
       status: 200,
       headers: { "content-type": "text/event-stream" },
@@ -366,13 +544,16 @@ test("an SSE / event-stream response is not buffered as a body", async ({ page }
     });
   });
 
-  await page.evaluate(() => { fetch("/api/stream"); });
+  await page.evaluate(() => {
+    fetch("/api/stream");
+  });
 
-  const reqs = await server.poll<NetEntry[]>(
-    "get_network_requests", { filter: "stream" },
-    (r) => r.some((req) => req.url.includes("/api/stream") && typeof req.responseBody === "string"),
+  const reqs = await server.poll<NetEntry[]>("get_network_requests", { filter: "stream" }, r =>
+    r.some(req => req.url.includes("/api/stream") && typeof req.responseBody === "string"),
   );
-  const body = String(reqs.find((r) => r.url.includes("/api/stream"))!.responseBody);
+  const req = reqs.find(r => r.url.includes("/api/stream"));
+  if (!req) throw new Error("expected /api/stream request to be captured");
+  const body = String(req.responseBody);
   expect(body.toLowerCase()).toContain("event stream");
   expect(body).not.toContain("data: hello"); // body bytes were never read
 });
@@ -383,11 +564,10 @@ test("console.assert records on failure but stays silent on success", async ({ p
     console.assert(false, "should be recorded");
   });
 
-  const logs = await server.poll<ConsoleEntry[]>(
-    "get_console_logs", {},
-    (l) => l.some((e) => e.method === "assert"),
+  const logs = await server.poll<ConsoleEntry[]>("get_console_logs", {}, l =>
+    l.some(e => e.method === "assert"),
   );
-  const asserts = logs.filter((l) => l.method === "assert");
+  const asserts = logs.filter(l => l.method === "assert");
   expect(asserts).toHaveLength(1);
   expect(asserts[0].level).toBe("error");
   expect(JSON.stringify(asserts[0].args)).toContain("should be recorded");
@@ -404,10 +584,11 @@ test("console.count maintains state across calls", async ({ page }) => {
   });
 
   const logs = await server.poll<ConsoleEntry[]>(
-    "get_console_logs", {},
-    (l) => l.filter((e) => e.method === "count").length >= 3,
+    "get_console_logs",
+    {},
+    l => l.filter(e => e.method === "count").length >= 3,
   );
-  const counts = logs.filter((l) => l.method === "count");
+  const counts = logs.filter(l => l.method === "count");
   expect(counts).toHaveLength(3);
   expect(counts[0].args[0]).toBe("widgets: 1");
   expect(counts[1].args[0]).toBe("widgets: 2");
@@ -417,26 +598,28 @@ test("console.count maintains state across calls", async ({ page }) => {
 test("console.time/timeEnd reports an elapsed duration", async ({ page }) => {
   await page.evaluate(async () => {
     console.time("op");
-    await new Promise((r) => setTimeout(r, 25));
+    await new Promise(r => setTimeout(r, 25));
     console.timeEnd("op");
   });
 
-  const logs = await server.poll<ConsoleEntry[]>(
-    "get_console_logs", {},
-    (l) => l.some((e) => e.method === "timeEnd"),
+  const logs = await server.poll<ConsoleEntry[]>("get_console_logs", {}, l =>
+    l.some(e => e.method === "timeEnd"),
   );
-  const timed = logs.find((e) => e.method === "timeEnd")!;
+  // biome-ignore lint/style/noNonNullAssertion: the log entry is guaranteed present in this scenario
+  const timed = logs.find(e => e.method === "timeEnd")!;
   expect(String(timed.args[0])).toMatch(/^op: \d+(\.\d+)?ms$/);
 });
 
 test("console.trace captures the call-site stack", async ({ page }) => {
-  await page.evaluate(() => { console.trace("from the test"); });
+  await page.evaluate(() => {
+    console.trace("from the test");
+  });
 
-  const logs = await server.poll<ConsoleEntry[]>(
-    "get_console_logs", {},
-    (l) => l.some((e) => e.method === "trace"),
+  const logs = await server.poll<ConsoleEntry[]>("get_console_logs", {}, l =>
+    l.some(e => e.method === "trace"),
   );
-  const traced = logs.find((e) => e.method === "trace")!;
+  // biome-ignore lint/style/noNonNullAssertion: the log entry is guaranteed present in this scenario
+  const traced = logs.find(e => e.method === "trace")!;
   expect(JSON.stringify(traced.args)).toContain("from the test");
   expect(typeof traced.stack).toBe("string");
   expect(String(traced.stack).length).toBeGreaterThan(0);
@@ -453,17 +636,22 @@ test("get_console_logs filters by level so errors aren't buried in noise", async
 
   // Wait until all five have landed in the buffer.
   await server.poll<ConsoleEntry[]>(
-    "get_console_logs", {},
-    (l) => l.filter((e) => e.level === "error").length >= 2,
+    "get_console_logs",
+    {},
+    l => l.filter(e => e.level === "error").length >= 2,
   );
 
-  const errorsOnly = await server.command<ConsoleEntry[]>("get_console_logs", { levels: ["error"] });
+  const errorsOnly = await server.command<ConsoleEntry[]>("get_console_logs", {
+    levels: ["error"],
+  });
   expect(errorsOnly.length).toBe(2);
-  expect(errorsOnly.every((l) => l.level === "error")).toBe(true);
+  expect(errorsOnly.every(l => l.level === "error")).toBe(true);
 
-  const errorsAndWarns = await server.command<ConsoleEntry[]>("get_console_logs", { levels: ["error", "warn"] });
+  const errorsAndWarns = await server.command<ConsoleEntry[]>("get_console_logs", {
+    levels: ["error", "warn"],
+  });
   expect(errorsAndWarns.length).toBe(4);
-  expect(errorsAndWarns.some((l) => l.level === "log")).toBe(false);
+  expect(errorsAndWarns.some(l => l.level === "log")).toBe(false);
 });
 
 test("get_console_logs match filter is case-insensitive", async ({ page }) => {
@@ -473,76 +661,80 @@ test("get_console_logs match filter is case-insensitive", async ({ page }) => {
     console.error("AUTH failure on /api/login");
   });
 
-  await server.poll<ConsoleEntry[]>(
-    "get_console_logs", {},
-    (l) => l.some((e) => JSON.stringify(e.args).includes("AUTH")),
+  await server.poll<ConsoleEntry[]>("get_console_logs", {}, l =>
+    l.some(e => JSON.stringify(e.args).includes("AUTH")),
   );
 
   const auth = await server.command<ConsoleEntry[]>("get_console_logs", { match: "auth" });
   expect(auth.length).toBe(1);
   expect(JSON.stringify(auth[0].args).toLowerCase()).toContain("auth");
 
-  const errorsMatchingAuth = await server.command<ConsoleEntry[]>(
-    "get_console_logs", { levels: ["error"], match: "auth" },
-  );
+  const errorsMatchingAuth = await server.command<ConsoleEntry[]>("get_console_logs", {
+    levels: ["error"],
+    match: "auth",
+  });
   expect(errorsMatchingAuth.length).toBe(1);
 });
 
 test("uncaught errors are captured", async ({ page }) => {
-  await page.evaluate(() => { setTimeout(() => { throw new Error("boom uncaught"); }, 0); });
+  await page.evaluate(() => {
+    setTimeout(() => {
+      throw new Error("boom uncaught");
+    }, 0);
+  });
 
-  const logs = await server.poll<ConsoleEntry[]>(
-    "get_console_logs", { levels: ["error"] },
-    (l) => l.some((e) => e.method === "uncaught"),
+  const logs = await server.poll<ConsoleEntry[]>("get_console_logs", { levels: ["error"] }, l =>
+    l.some(e => e.method === "uncaught"),
   );
-  const u = logs.find((e) => e.method === "uncaught")!;
+  // biome-ignore lint/style/noNonNullAssertion: the log entry is guaranteed present in this scenario
+  const u = logs.find(e => e.method === "uncaught")!;
   expect(JSON.stringify(u.args)).toContain("boom uncaught");
   expect(typeof u.stack).toBe("string");
 });
 
 test("unhandled promise rejections are captured", async ({ page }) => {
-  await page.evaluate(() => { Promise.reject(new Error("boom rejected")); });
+  await page.evaluate(() => {
+    Promise.reject(new Error("boom rejected"));
+  });
 
-  const logs = await server.poll<ConsoleEntry[]>(
-    "get_console_logs", { levels: ["error"] },
-    (l) => l.some((e) => e.method === "unhandledrejection"),
+  const logs = await server.poll<ConsoleEntry[]>("get_console_logs", { levels: ["error"] }, l =>
+    l.some(e => e.method === "unhandledrejection"),
   );
-  const r = logs.find((e) => e.method === "unhandledrejection")!;
+  // biome-ignore lint/style/noNonNullAssertion: the log entry is guaranteed present in this scenario
+  const r = logs.find(e => e.method === "unhandledrejection")!;
   expect(JSON.stringify(r.args)).toContain("boom rejected");
 });
 
 test("since filter scopes logs + network to what happened after a point", async ({ page }) => {
   await page.evaluate(() => console.log("before marker"));
-  await server.poll<ConsoleEntry[]>(
-    "get_console_logs", {},
-    (l) => l.some((e) => JSON.stringify(e.args).includes("before marker")),
+  await server.poll<ConsoleEntry[]>("get_console_logs", {}, l =>
+    l.some(e => JSON.stringify(e.args).includes("before marker")),
   );
 
   const t = Date.now();
-  await new Promise((r) => setTimeout(r, 5));
+  await new Promise(r => setTimeout(r, 5));
   await page.evaluate(() => {
     console.log("after marker");
     fetch("/api/since-test").catch(() => {});
   });
 
-  const logs = await server.poll<ConsoleEntry[]>(
-    "get_console_logs", { since: t },
-    (l) => l.some((e) => JSON.stringify(e.args).includes("after marker")),
+  const logs = await server.poll<ConsoleEntry[]>("get_console_logs", { since: t }, l =>
+    l.some(e => JSON.stringify(e.args).includes("after marker")),
   );
-  expect(logs.some((e) => JSON.stringify(e.args).includes("after marker"))).toBe(true);
-  expect(logs.some((e) => JSON.stringify(e.args).includes("before marker"))).toBe(false);
+  expect(logs.some(e => JSON.stringify(e.args).includes("after marker"))).toBe(true);
+  expect(logs.some(e => JSON.stringify(e.args).includes("before marker"))).toBe(false);
 
-  const nets = await server.poll<NetEntry[]>(
-    "get_network_requests", { since: t },
-    (r) => r.some((x) => x.url.includes("since-test")),
+  const nets = await server.poll<NetEntry[]>("get_network_requests", { since: t }, r =>
+    r.some(x => x.url.includes("since-test")),
   );
-  expect(nets.some((x) => x.url.includes("since-test"))).toBe(true);
+  expect(nets.some(x => x.url.includes("since-test"))).toBe(true);
 });
 
 test("press_key fires key handlers on the target element", async ({ page }) => {
   await page.evaluate(() => {
+    // biome-ignore lint/style/noNonNullAssertion: the element exists in the test fixture
     const input = document.getElementById("search-input")!;
-    input.addEventListener("keydown", (e) => {
+    input.addEventListener("keydown", e => {
       if ((e as KeyboardEvent).key === "Enter") document.title = "ENTER_PRESSED";
     });
   });
@@ -553,18 +745,21 @@ test("press_key fires key handlers on the target element", async ({ page }) => {
 });
 
 test("get_html returns the outerHTML of a region", async () => {
-  const res = await server.command<{ html: string; truncated: boolean }>(
-    "get_html", { selector: "#member-list" },
-  );
+  const res = await server.command<{ html: string; truncated: boolean }>("get_html", {
+    selector: "#member-list",
+  });
   expect(res.html).toContain("<li");
   expect(res.html).toContain("Alice");
   expect(res.truncated).toBe(false);
 });
 
 test("get_page_info returns page context", async () => {
-  const info = await server.command<{ url: string; title: string; readyState: string; viewport: { width: number; height: number } }>(
-    "get_page_info",
-  );
+  const info = await server.command<{
+    url: string;
+    title: string;
+    readyState: string;
+    viewport: { width: number; height: number };
+  }>("get_page_info");
   expect(info.url).toContain("localhost:4173");
   expect(typeof info.title).toBe("string");
   expect(info.viewport.width).toBeGreaterThan(0);

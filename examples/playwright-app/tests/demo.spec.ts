@@ -9,7 +9,7 @@
  * Start the MCP server in a separate terminal before connecting an AI agent:
  *   cd packages/mcp && node dist/index.js
  */
-import { test, expect } from "@feedthrough/playwright";
+import { expect, test } from "@feedthrough/playwright";
 
 test("counter increments (displays wrong value — off-by-one bug)", async ({ page }) => {
   await page.goto("/");

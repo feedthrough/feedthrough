@@ -203,7 +203,7 @@ Then ask your AI agent:
 |---|---|
 | `get_instructions()` | Usage guide — recommended workflow, tool ordering, and selector tips |
 | `query_dom(selector)` | All elements matching a CSS selector |
-| `inspect_element(selector, properties?)` | Tag, attributes, full bounding rect + inViewport, curated computed styles, live form state; `properties` reads extra CSS props by name |
+| `inspect_element(selector, properties?)` | Tag, attributes, full bounding rect + inViewport, ancestor `path`, curated computed styles, overflow info (clipped/overflowing content), `clipped`-by-ancestor info, effective visibility (`visible` + `hiddenReason`, accounting for ancestors), occlusion (`hittable` + `occludedBy`), accessibility (`a11y`: role, name, states), `pseudo` ::before/::after content, live form state; `properties` reads extra CSS props by name |
 | `get_html(selector)` | Raw outerHTML of a region (capped at 50 KB) |
 | `get_console_logs(limit?, levels?, match?, since?)` | Console output (all methods) plus uncaught errors & promise rejections; filter by `levels`, `match`, or `since` timestamp |
 | `get_network_requests(filter?, since?)` | Captured fetch + XHR — URL, method, status, duration, headers, request/response bodies (10 KB cap); narrow by `filter` or `since` |

@@ -1,7 +1,7 @@
-import { Transport } from "./transport";
+import { CommandHandler } from "./commands";
 import { ConsoleInterceptor } from "./interceptors/console";
 import { NetworkInterceptor } from "./interceptors/network";
-import { CommandHandler } from "./commands";
+import { Transport } from "./transport";
 import type { BridgeOptions } from "./types";
 
 const DEFAULT_SERVER_URL = "ws://localhost:8765";
@@ -23,11 +23,17 @@ export class FeedthroughBridge {
     // which is safe because WebSocket messages only arrive after connect() returns.
     this.transport = new Transport(
       url,
-      (msg) => this.commandHandler.handle(msg),
-      (connected) => { if (connected) this.transport.send({ type: "hello", url: window.location.href }); },
+      msg => this.commandHandler.handle(msg),
+      connected => {
+        if (connected) this.transport.send({ type: "hello", url: window.location.href });
+      },
       reconnectDelay,
     );
-    this.commandHandler = new CommandHandler(this.transport, this.consoleInterceptor, this.networkInterceptor);
+    this.commandHandler = new CommandHandler(
+      this.transport,
+      this.consoleInterceptor,
+      this.networkInterceptor,
+    );
   }
 
   connect(): void {

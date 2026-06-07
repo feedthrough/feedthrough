@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Feedthrough Playwright Demo</title>
+  <style>
+    #pseudo-probe::before { content: "★ "; }
+  </style>
 </head>
 <body>
   <main style="font-family:sans-serif;max-width:600px;margin:40px auto;padding:0 20px">
@@ -12,8 +15,9 @@
     <section id="counter-section">
       <h2>Page Views</h2>
       <p>Total views: <strong id="view-count">0</strong></p>
-      <button id="record-view-btn">Record View</button>
+      <button type="button" id="record-view-btn">Record View</button>
       <p style="color:#888;font-size:13px">Each click should add 1 view.</p>
+      <span id="pseudo-probe">Featured</span>
     </section>
 
     <hr style="margin:32px 0">
@@ -30,7 +34,7 @@
 
     <section id="feed-section">
       <h2>Activity Feed</h2>
-      <button id="refresh-btn">Refresh Feed</button>
+      <button type="button" id="refresh-btn">Refresh Feed</button>
       <p id="feed-status" style="color:#888;font-size:13px;margin-top:8px">No events yet. Click Refresh.</p>
     </section>
   </main>

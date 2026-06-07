@@ -1,12 +1,12 @@
 // ── Data ──────────────────────────────────────────────────────────────────────
 
 const TEAM = [
-  { id: 1, name: "Alice Chen",   department: "Platform" },
-  { id: 2, name: "Bob Martinez", department: "Product"  },
-  { id: 3, name: "Carol Smith",  department: "Platform" },
-  { id: 4, name: "David Kim",    department: "Product"  },
-  { id: 5, name: "Eve Johnson",  department: "Data"     },
-  { id: 6, name: "Frank Lee",    department: "Data"     },
+  { id: 1, name: "Alice Chen", department: "Platform" },
+  { id: 2, name: "Bob Martinez", department: "Product" },
+  { id: 3, name: "Carol Smith", department: "Platform" },
+  { id: 4, name: "David Kim", department: "Product" },
+  { id: 5, name: "Eve Johnson", department: "Data" },
+  { id: 6, name: "Frank Lee", department: "Data" },
 ];
 
 // ── Section 1: Page view counter ──────────────────────────────────────────────
@@ -25,27 +25,31 @@ document.getElementById("record-view-btn").addEventListener("click", () => {
 // ── Section 2: Team member search ────────────────────────────────────────────
 // BUG: name comparison is case-sensitive; "alice" finds nothing, "Alice" works.
 
-const searchInput  = document.getElementById("search-input");
-const resultCount  = document.getElementById("result-count");
-const memberList   = document.getElementById("member-list");
+const searchInput = document.getElementById("search-input");
+const resultCount = document.getElementById("result-count");
+const memberList = document.getElementById("member-list");
 
 function renderTeam(query) {
-  const results = TEAM.filter(m =>
-    m.name.includes(query) || // BUG: missing .toLowerCase() on m.name
-    m.department.toLowerCase().includes(query.toLowerCase())
+  const results = TEAM.filter(
+    m =>
+      m.name.includes(query) || // BUG: missing .toLowerCase() on m.name
+      m.department.toLowerCase().includes(query.toLowerCase()),
   );
   resultCount.textContent = query
     ? `${results.length} of ${TEAM.length} members match`
     : `${TEAM.length} members`;
-  memberList.innerHTML = results.map(m =>
-    `<li data-member-id="${m.id}" style="padding:6px 0;border-bottom:1px solid #eee">
+  memberList.innerHTML = results
+    .map(
+      m =>
+        `<li data-member-id="${m.id}" style="padding:6px 0;border-bottom:1px solid #eee">
       <strong>${m.name}</strong> — ${m.department}
-    </li>`
-  ).join("");
+    </li>`,
+    )
+    .join("");
 }
 
 renderTeam("");
-searchInput.addEventListener("input", (e) => {
+searchInput.addEventListener("input", e => {
   console.log("searching team for:", e.target.value);
   renderTeam(e.target.value);
 });
@@ -54,18 +58,18 @@ searchInput.addEventListener("input", (e) => {
 // BUG: fetches from /api/events (404); error is caught but not shown to the user.
 
 const feedStatus = document.getElementById("feed-status");
-const eventList  = document.getElementById("event-list");
+const eventList = document.getElementById("event-list");
 
 document.getElementById("refresh-btn").addEventListener("click", async () => {
   feedStatus.textContent = "Loading…";
   console.log("refreshing activity feed...");
   try {
     // BUG: wrong URL — should be https://jsonplaceholder.typicode.com/posts?_limit=5
-    const res  = await fetch("/api/events");
+    const res = await fetch("/api/events");
     const data = await res.json();
-    eventList.innerHTML = data.map(e =>
-      `<li style="padding:6px 0;border-bottom:1px solid #eee">${e.message}</li>`
-    ).join("");
+    eventList.innerHTML = data
+      .map(e => `<li style="padding:6px 0;border-bottom:1px solid #eee">${e.message}</li>`)
+      .join("");
     feedStatus.textContent = "";
     console.log("feed loaded,", data.length, "events");
   } catch (err) {

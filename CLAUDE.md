@@ -174,6 +174,25 @@ plus any host matching an allowed suffix (default `.test`; override via
 local-only (a `.test` origin only exists on a locally-resolving host, so this widens which local
 origins connect, not network reach).
 
+## Version numbers: keep these in sync
+
+Packages are versioned independently (a patch to one package does not bump the others); a
+coordinated bump like the 0.3 release just happens to move them together. Whatever you bump, a
+package's version can be duplicated in more than one place, and those copies must match:
+
+- `packages/<pkg>/package.json`: the `version` field. The source of truth for that package.
+- `packages/mcp/server.json` (mcp only): TWO fields, the top-level `version` and
+  `packages[0].version`, both of which must equal `@feedthrough/mcp`'s package.json version. The
+  MCP registry validates server.json against the published npm package, so a mismatch fails
+  registration.
+
+Derived automatically (do not hand-edit): the MCP server handshake version in
+`packages/mcp/src/server.ts` reads `version` from its own `package.json` at runtime.
+
+Not versioned for release: the root `package.json` (private, no version) and `website/package.json`
+(private). Inter-package deps are all `workspace:*`, so there are no dependency version ranges to
+bump.
+
 ## Session progress
 
 - ✅ Step 0 — proof of concept (feedthrough_prototype/)

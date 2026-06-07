@@ -1,5 +1,5 @@
-import type { NextConfig } from "next";
 import { withFeedthrough } from "@feedthrough/nextjs";
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {};
 

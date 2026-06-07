@@ -7,8 +7,9 @@ if (import.meta.env.DEV) {
   import("@feedthrough/core").then(({ init }) => init());
 }
 
+// biome-ignore lint/style/noNonNullAssertion: #root is defined in index.html
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />
-  </StrictMode>
+  </StrictMode>,
 );

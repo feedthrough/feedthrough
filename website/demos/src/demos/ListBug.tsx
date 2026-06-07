@@ -31,6 +31,7 @@ export const ListBug = forwardRef<ListHandle>((_props, ref) => {
       <h2 className="card-title">Checklist</h2>
       <ul className="list">
         {ITEMS.map((label, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static demo list, never reordered
           <li key={i} className={`row ${ticked === i ? "row-on" : ""}`}>
             <span className="box">{ticked === i ? "☑" : "☐"}</span>
             {label}

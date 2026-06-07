@@ -1,7 +1,7 @@
-import type { Plugin } from "vite";
-import type { BridgeOptions } from "@feedthrough/core";
-import { bridgeBundle } from "./generated/bundle.js";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import type { BridgeOptions } from "@feedthrough/core";
+import type { Plugin } from "vite";
+import { bridgeBundle } from "./generated/bundle.js";
 
 export function feedthrough(options: BridgeOptions = {}): Plugin {
   const script = `<script>window.__feedthroughOptions=${JSON.stringify(options)};${bridgeBundle}</script>`;
@@ -20,7 +20,7 @@ export function feedthrough(options: BridgeOptions = {}): Plugin {
         const origEnd = res.end.bind(res);
 
         let done = false; // injected, or decided not to — stop intercepting
-        let held = "";    // partial HTML buffered only while seeking </head>
+        let held = ""; // partial HTML buffered only while seeking </head>
 
         const isHtml = () => String(res.getHeader("content-type") ?? "").includes("text/html");
 
@@ -28,10 +28,16 @@ export function feedthrough(options: BridgeOptions = {}): Plugin {
         // false means the caller should write it through normally.
         const intercept = (chunk: unknown): boolean => {
           if (done) return false;
-          if (!isHtml()) { done = true; return false; }
+          if (!isHtml()) {
+            done = true;
+            return false;
+          }
           const text = held + toStr(chunk);
           const idx = text.indexOf("</head>");
-          if (idx === -1) { held = text; return true; } // keep seeking
+          if (idx === -1) {
+            held = text;
+            return true;
+          } // keep seeking
           done = true;
           held = "";
           res.removeHeader("content-length"); // injected script changes the length
@@ -39,25 +45,28 @@ export function feedthrough(options: BridgeOptions = {}): Plugin {
           return true;
         };
 
-        res.write = function (chunk: unknown, ...rest: unknown[]): boolean {
+        res.write = ((chunk: unknown, ...rest: unknown[]): boolean => {
           if (chunk != null && intercept(chunk)) {
-            const cb = rest.find((a) => typeof a === "function") as (() => void) | undefined;
+            const cb = rest.find(a => typeof a === "function") as (() => void) | undefined;
             cb?.();
             return true;
           }
           return (origWrite as (...a: unknown[]) => boolean)(chunk, ...rest);
-        } as typeof res.write;
+        }) as typeof res.write;
 
-        res.end = function (chunk?: unknown, ...rest: unknown[]): ServerResponse {
+        res.end = ((chunk?: unknown, ...rest: unknown[]): ServerResponse => {
           if (chunk != null && chunk !== "" && typeof chunk !== "function" && !intercept(chunk)) {
             origWrite(chunk as string | Buffer);
           }
-          if (held) { origWrite(held); held = ""; } // never saw </head>; flush as-is
+          if (held) {
+            origWrite(held);
+            held = "";
+          } // never saw </head>; flush as-is
           return (origEnd as (...a: unknown[]) => ServerResponse)(
             typeof chunk === "function" ? chunk : undefined,
             ...rest,
           );
-        } as typeof res.end;
+        }) as typeof res.end;
 
         next();
       });

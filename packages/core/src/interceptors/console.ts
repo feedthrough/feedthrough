@@ -11,6 +11,7 @@ const STD_LEVELS: LogLevel[] = ["log", "warn", "error", "info", "debug"];
 const MAX_LOGS = 1000;
 const MAX_ARG_CHARS = 10_000;
 
+// biome-ignore lint/suspicious/noExplicitAny: console methods accept and return arbitrary argument types
 type AnyFn = (...args: any[]) => any;
 
 export class ConsoleInterceptor {
@@ -32,9 +33,19 @@ export class ConsoleInterceptor {
       if (this.logs.length > MAX_LOGS) this.logs.shift();
     };
     const rich = (
-      method: string, level: LogLevel, args: unknown[], extras: Partial<ConsoleMessage> = {},
+      method: string,
+      level: LogLevel,
+      args: unknown[],
+      extras: Partial<ConsoleMessage> = {},
     ): void => {
-      record({ type: "console", ts: Date.now(), level, method, args: args.map(serialize), ...extras });
+      record({
+        type: "console",
+        ts: Date.now(),
+        level,
+        method,
+        args: args.map(serialize),
+        ...extras,
+      });
     };
     const wrap = (name: string, fn: AnyFn): void => {
       const orig = c[name];
@@ -55,23 +66,23 @@ export class ConsoleInterceptor {
 
     // dir / table — formatted variants of log.
     wrap("dir", (obj: unknown, options?: unknown) => {
-      this.originals.get("dir")!(obj, options);
+      this.originals.get("dir")?.(obj, options);
       rich("dir", "log", options === undefined ? [obj] : [obj, options]);
     });
     wrap("table", (data: unknown, columns?: unknown) => {
-      this.originals.get("table")!(data, columns);
+      this.originals.get("table")?.(data, columns);
       rich("table", "log", columns === undefined ? [data] : [data, columns]);
     });
 
     // trace — captures the call-site stack.
     wrap("trace", (...args: unknown[]) => {
-      this.originals.get("trace")!(...args);
+      this.originals.get("trace")?.(...args);
       rich("trace", "log", args, { stack: captureStack() });
     });
 
     // assert — fires only when the condition is falsy, like the browser.
     wrap("assert", (condition?: unknown, ...args: unknown[]) => {
-      this.originals.get("assert")!(condition, ...args);
+      this.originals.get("assert")?.(condition, ...args);
       if (condition) return;
       rich("assert", "error", args.length ? args : ["Assertion failed"], { stack: captureStack() });
     });
@@ -79,14 +90,14 @@ export class ConsoleInterceptor {
     // count / countReset — we maintain the counter so the recorded value
     // mirrors what the browser prints.
     wrap("count", (label?: unknown) => {
-      this.originals.get("count")!(label);
+      this.originals.get("count")?.(label);
       const key = label == null ? "default" : String(label);
       const n = (this.counts.get(key) ?? 0) + 1;
       this.counts.set(key, n);
       rich("count", "log", [`${key}: ${n}`]);
     });
     wrap("countReset", (label?: unknown) => {
-      this.originals.get("countReset")!(label);
+      this.originals.get("countReset")?.(label);
       const key = label == null ? "default" : String(label);
       this.counts.set(key, 0);
       rich("countReset", "log", [`${key}: 0`]);
@@ -95,12 +106,12 @@ export class ConsoleInterceptor {
     // time / timeEnd / timeLog — only timeEnd and timeLog produce output, same
     // as the browser. time() silently starts a stopwatch.
     wrap("time", (label?: unknown) => {
-      this.originals.get("time")!(label);
+      this.originals.get("time")?.(label);
       const key = label == null ? "default" : String(label);
       this.timers.set(key, performance.now());
     });
     wrap("timeEnd", (label?: unknown) => {
-      this.originals.get("timeEnd")!(label);
+      this.originals.get("timeEnd")?.(label);
       const key = label == null ? "default" : String(label);
       const start = this.timers.get(key);
       if (start === undefined) {
@@ -111,7 +122,7 @@ export class ConsoleInterceptor {
       rich("timeEnd", "log", [`${key}: ${(performance.now() - start).toFixed(3)}ms`]);
     });
     wrap("timeLog", (label?: unknown, ...args: unknown[]) => {
-      this.originals.get("timeLog")!(label, ...args);
+      this.originals.get("timeLog")?.(label, ...args);
       const key = label == null ? "default" : String(label);
       const start = this.timers.get(key);
       if (start === undefined) {
@@ -125,19 +136,19 @@ export class ConsoleInterceptor {
     // NOT flush the buffer on clear() so prior context remains available to
     // the agent; the clear() call itself appears as an event in the stream.
     wrap("group", (...args: unknown[]) => {
-      this.originals.get("group")!(...args);
+      this.originals.get("group")?.(...args);
       rich("group", "log", args);
     });
     wrap("groupCollapsed", (...args: unknown[]) => {
-      this.originals.get("groupCollapsed")!(...args);
+      this.originals.get("groupCollapsed")?.(...args);
       rich("groupCollapsed", "log", args);
     });
     wrap("groupEnd", () => {
-      this.originals.get("groupEnd")!();
+      this.originals.get("groupEnd")?.();
       rich("groupEnd", "log", []);
     });
     wrap("clear", () => {
-      this.originals.get("clear")!();
+      this.originals.get("clear")?.();
       rich("clear", "log", []);
     });
 
@@ -147,7 +158,10 @@ export class ConsoleInterceptor {
     // wants — as error-level entries with a distinguishing `method`.
     this.onError = (e: ErrorEvent) => {
       record({
-        type: "console", ts: Date.now(), level: "error", method: "uncaught",
+        type: "console",
+        ts: Date.now(),
+        level: "error",
+        method: "uncaught",
         args: [serialize(e.message || "Uncaught error")],
         stack: e.error instanceof Error ? e.error.stack : undefined,
       });
@@ -155,7 +169,10 @@ export class ConsoleInterceptor {
     this.onRejection = (e: PromiseRejectionEvent) => {
       const reason = e.reason;
       record({
-        type: "console", ts: Date.now(), level: "error", method: "unhandledrejection",
+        type: "console",
+        ts: Date.now(),
+        level: "error",
+        method: "unhandledrejection",
         args: [serialize(reason instanceof Error ? reason.message : reason)],
         stack: reason instanceof Error ? reason.stack : undefined,
       });
@@ -185,6 +202,7 @@ export class ConsoleInterceptor {
       result = result.filter(m => JSON.stringify(m.args).toLowerCase().includes(needle));
     }
     if (opts.since !== undefined) {
+      // biome-ignore lint/style/noNonNullAssertion: inside the opts.since !== undefined guard above
       result = result.filter(m => m.ts >= opts.since!);
     }
     if (opts.limit !== undefined) {
@@ -221,5 +239,5 @@ function serialize(v: unknown): unknown {
 }
 
 function cap(text: string): string {
-  return text.length > MAX_ARG_CHARS ? text.slice(0, MAX_ARG_CHARS) + "…[truncated]" : text;
+  return text.length > MAX_ARG_CHARS ? `${text.slice(0, MAX_ARG_CHARS)}…[truncated]` : text;
 }

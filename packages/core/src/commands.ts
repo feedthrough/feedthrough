@@ -1,6 +1,6 @@
-import type { Transport } from "./transport";
 import type { ConsoleInterceptor } from "./interceptors/console";
 import type { NetworkInterceptor } from "./interceptors/network";
+import type { Transport } from "./transport";
 import type { Command, ResultMessage } from "./types";
 
 export class CommandHandler {
@@ -34,20 +34,39 @@ export class CommandHandler {
 
   private dispatch(cmd: Command): unknown {
     switch (cmd.action) {
-      case "click":               return clickEl(cmd.selector);
-      case "fill":                return fillEl(cmd.selector, cmd.value);
-      case "hover":               return hoverEl(cmd.selector);
-      case "inspect":             return inspectEl(cmd.selector, cmd.properties);
-      case "query_dom":           return queryDom(cmd.selector);
-      case "get_console_logs":    return this.console.getLogs({ limit: cmd.limit, levels: cmd.levels, match: cmd.match, since: cmd.since });
-      case "get_network_requests": return this.network.getRequests(cmd.filter, cmd.since);
-      case "press_key":           return pressKey(cmd.selector, cmd.key);
-      case "get_html":            return getHtml(cmd.selector);
-      case "get_page_info":       return getPageInfo();
-      case "set_style":           return setStyle(cmd.selector, cmd.properties);
-      case "set_attribute":       return setAttribute(cmd.selector, cmd.name, cmd.value);
-      case "set_text":            return setText(cmd.selector, cmd.text);
-      case "reset_overrides":     return resetOverrides();
+      case "click":
+        return clickEl(cmd.selector);
+      case "fill":
+        return fillEl(cmd.selector, cmd.value);
+      case "hover":
+        return hoverEl(cmd.selector);
+      case "inspect":
+        return inspectEl(cmd.selector, cmd.properties);
+      case "query_dom":
+        return queryDom(cmd.selector);
+      case "get_console_logs":
+        return this.console.getLogs({
+          limit: cmd.limit,
+          levels: cmd.levels,
+          match: cmd.match,
+          since: cmd.since,
+        });
+      case "get_network_requests":
+        return this.network.getRequests(cmd.filter, cmd.since);
+      case "press_key":
+        return pressKey(cmd.selector, cmd.key);
+      case "get_html":
+        return getHtml(cmd.selector);
+      case "get_page_info":
+        return getPageInfo();
+      case "set_style":
+        return setStyle(cmd.selector, cmd.properties);
+      case "set_attribute":
+        return setAttribute(cmd.selector, cmd.name, cmd.value);
+      case "set_text":
+        return setText(cmd.selector, cmd.text);
+      case "reset_overrides":
+        return resetOverrides();
     }
   }
 }
@@ -76,9 +95,11 @@ function fillEl(selector: string, value: string) {
   // element's own prototype — using HTMLInputElement's setter on a <textarea>
   // or <select> throws "Illegal invocation".
   const proto =
-    el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype :
-    el instanceof HTMLSelectElement ? HTMLSelectElement.prototype :
-    HTMLInputElement.prototype;
+    el instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype
+      : el instanceof HTMLSelectElement
+        ? HTMLSelectElement.prototype
+        : HTMLInputElement.prototype;
   const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
   if (nativeSetter) {
     nativeSetter.call(el, value);
@@ -101,14 +122,38 @@ function hoverEl(selector: string) {
 // typography, positioning, and fl/grid — enough to diagnose most "why does this
 // look wrong" cases. Request anything beyond this via the `properties` arg.
 const DEFAULT_STYLE_PROPS = [
-  "display", "position", "visibility", "opacity", "z-index", "box-sizing",
-  "top", "right", "bottom", "left",
-  "width", "height", "margin", "padding", "border",
-  "color", "background-color",
-  "font-family", "font-size", "font-weight", "line-height", "text-align",
-  "overflow", "cursor", "pointer-events",
-  "flex", "flex-direction", "justify-content", "align-items", "gap",
-  "grid-template-columns", "transform",
+  "display",
+  "position",
+  "visibility",
+  "opacity",
+  "z-index",
+  "box-sizing",
+  "top",
+  "right",
+  "bottom",
+  "left",
+  "width",
+  "height",
+  "margin",
+  "padding",
+  "border",
+  "color",
+  "background-color",
+  "font-family",
+  "font-size",
+  "font-weight",
+  "line-height",
+  "text-align",
+  "overflow",
+  "cursor",
+  "pointer-events",
+  "flex",
+  "flex-direction",
+  "justify-content",
+  "align-items",
+  "gap",
+  "grid-template-columns",
+  "transform",
 ];
 
 function inspectEl(selector: string, properties?: string[]) {
@@ -123,15 +168,47 @@ function inspectEl(selector: string, properties?: string[]) {
     attributes: Object.fromEntries(Array.from(el.attributes).map(a => [a.name, a.value])),
     textContent: el.textContent?.trim().slice(0, 200),
     rect: {
-      top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left,
-      width: rect.width, height: rect.height, x: rect.x, y: rect.y,
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+      left: rect.left,
+      width: rect.width,
+      height: rect.height,
+      x: rect.x,
+      y: rect.y,
     },
     scroll: { x: window.scrollX, y: window.scrollY },
     inViewport:
-      rect.bottom > 0 && rect.right > 0 &&
-      rect.top < window.innerHeight && rect.left < window.innerWidth,
+      rect.bottom > 0 &&
+      rect.right > 0 &&
+      rect.top < window.innerHeight &&
+      rect.left < window.innerWidth,
     styles: pickStyles(cs, DEFAULT_STYLE_PROPS),
   };
+
+  result.path = ancestorChain(el);
+
+  const overflow = overflowInfo(el);
+  if (overflow) result.overflow = overflow;
+
+  const clipped = clippedByAncestor(el, rect, cs);
+  if (clipped) result.clipped = clipped;
+
+  const vis = effectiveVisibility(el, rect, cs);
+  result.visible = vis.visible;
+  if (!vis.visible) result.hiddenReason = vis.reason;
+
+  const occ = occlusionInfo(el, rect);
+  if (occ) {
+    result.hittable = occ.hittable;
+    if (occ.occludedBy) result.occludedBy = occ.occludedBy;
+  }
+
+  const a11y = accessibilityInfo(el);
+  if (a11y) result.a11y = a11y;
+
+  const pseudo = pseudoContent(el);
+  if (pseudo) result.pseudo = pseudo;
 
   const state = elementState(el);
   if (state) result.state = state;
@@ -145,6 +222,200 @@ function inspectEl(selector: string, properties?: string[]) {
   return result;
 }
 
+// Detect content larger than the element's box — the standard signal for
+// clipped/truncated labels or content spilling out of a container. Reported only
+// when something actually overflows (omitted otherwise), to keep the payload lean.
+function overflowInfo(el: Element): Record<string, unknown> | undefined {
+  const { scrollWidth, clientWidth, scrollHeight, clientHeight } = el;
+  const x = scrollWidth > clientWidth;
+  const y = scrollHeight > clientHeight;
+  if (!x && !y) return undefined;
+  return { x, y, scrollWidth, clientWidth, scrollHeight, clientHeight };
+}
+
+// A compact CSS-ish reference for an element, e.g. "div#app.modal.open" —
+// enough structural context to identify the culprit without a full get_html.
+// Classes are capped (utility-CSS apps can carry dozens) to keep the payload
+// low-token; a trailing "…" marks the truncation.
+function refString(el: Element): string {
+  const tag = el.tagName.toLowerCase();
+  const id = el.id ? `#${el.id}` : "";
+  const all = Array.from(el.classList);
+  const classes = all
+    .slice(0, 3)
+    .map(c => `.${c}`)
+    .join("");
+  const more = all.length > 3 ? "…" : "";
+  return tag + id + classes + more;
+}
+
+// A single compact segment for the ancestor chain: tag + #id, or tag + first
+// class, or just the tag. Kept lighter than refString so the path stays short.
+function chainRef(el: Element): string {
+  const tag = el.tagName.toLowerCase();
+  if (el.id) return `${tag}#${el.id}`;
+  const cls = el.classList[0];
+  return cls ? `${tag}.${cls}` : tag;
+}
+
+// A compact structural path from an ancestor down to the element, e.g.
+// "body > main > div#app > button.cta". Gives the agent context about where the
+// element lives without a full get_html. Capped in depth, with a leading "…" when
+// the chain is longer than the cap.
+function ancestorChain(el: Element): string {
+  const maxDepth = 6;
+  const parts: string[] = [];
+  let node: Element | null = el;
+  while (node) {
+    parts.unshift(chainRef(node));
+    node = node.parentElement;
+    if (parts.length >= maxDepth && node) {
+      parts.unshift("…");
+      break;
+    }
+  }
+  return parts.join(" > ");
+}
+
+// Cap ancestor walks so a pathologically deep DOM can't make inspect_element do
+// unbounded synchronous work — real hiding/clipping wrappers are always near.
+const MAX_ANCESTOR_WALK = 50;
+
+// Does this element establish a containing block for position:fixed descendants?
+// (a transform/perspective/filter/backdrop-filter, the matching will-change hints,
+// or paint/layout containment.) When one exists, a fixed descendant is clipped
+// relative to it instead of escaping to the viewport.
+function establishesFixedContainingBlock(cs: CSSStyleDeclaration): boolean {
+  if (cs.transform !== "none") return true;
+  if (cs.perspective !== "none") return true;
+  if (cs.filter !== "none") return true;
+  const backdrop = cs.getPropertyValue("backdrop-filter");
+  if (backdrop && backdrop !== "none") return true;
+  if (/transform|perspective|filter/.test(cs.willChange)) return true;
+  if (/paint|layout|strict|content/.test(cs.contain)) return true;
+  return false;
+}
+
+// Detect when the element is cut off by an ancestor's clipping context
+// (overflow:hidden/scroll/auto/clip) even though the element itself renders fine —
+// e.g. a dropdown clipped by a panel, or content scrolled out of a container. This
+// is distinct from inViewport (viewport-level) and from occlusion (z-order).
+// Reports the nearest clipping ancestor and which edges are cut. A position:fixed
+// element escapes overflow clipping unless an ancestor establishes a containing
+// block for it; clipping then begins at that ancestor.
+function clippedByAncestor(
+  el: Element,
+  rect: DOMRect,
+  cs: CSSStyleDeclaration,
+): { by: string; edges: string[] } | undefined {
+  const tol = 1;
+  // For a fixed element, overflow ancestors don't clip until we reach its
+  // containing block; for everything else, clipping applies from the parent up.
+  let clipping = cs.position !== "fixed";
+  let node = el.parentElement;
+  for (let depth = 0; node && depth < MAX_ANCESTOR_WALK; node = node.parentElement, depth++) {
+    const acs = window.getComputedStyle(node);
+    if (!clipping) {
+      if (establishesFixedContainingBlock(acs)) clipping = true;
+      else continue;
+    }
+    const clipsX = acs.overflowX !== "visible";
+    const clipsY = acs.overflowY !== "visible";
+    if (!clipsX && !clipsY) continue;
+    const ar = node.getBoundingClientRect();
+    const edges: string[] = [];
+    if (clipsY && rect.top < ar.top - tol) edges.push("top");
+    if (clipsX && rect.right > ar.right + tol) edges.push("right");
+    if (clipsY && rect.bottom > ar.bottom + tol) edges.push("bottom");
+    if (clipsX && rect.left < ar.left - tol) edges.push("left");
+    if (edges.length > 0) return { by: refString(node), edges };
+  }
+  return undefined;
+}
+
+// Content set via ::before / ::after pseudo-elements (icon fonts, CSS counters,
+// generated text), which is invisible to DOM/textContent inspection. Reported only
+// when present and not the empty/none default. Values come back quoted as the
+// computed style returns them (e.g. "\"★\"").
+function pseudoContent(el: Element): Record<string, string> | undefined {
+  const out: Record<string, string> = {};
+  for (const pseudo of ["::before", "::after"]) {
+    const content = window.getComputedStyle(el, pseudo).content;
+    if (content && content !== "none" && content !== "normal") {
+      out[pseudo] = content.length > 200 ? `${content.slice(0, 200)}…` : content;
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+// Hit-test the element's center against document.elementFromPoint to detect
+// occlusion: the element can be present and in-viewport but covered by an overlay,
+// modal backdrop, sticky header, or have pointer-events:none, so an interaction
+// silently lands elsewhere. Returns undefined when the center is offscreen (can't
+// be tested). hittable is true when the topmost element is the element itself or a
+// descendant; otherwise occludedBy names the element actually on top.
+function occlusionInfo(
+  el: Element,
+  rect: DOMRect,
+): { hittable: boolean; occludedBy?: Record<string, unknown> } | undefined {
+  if (rect.width === 0 || rect.height === 0) return undefined;
+  // Sample the centre of the element's visible region (its intersection with the
+  // viewport), clamped strictly inside it: elementFromPoint treats a point on the
+  // far edge (x === innerWidth / y === innerHeight) as outside and returns null.
+  const left = Math.max(rect.left, 0);
+  const top0 = Math.max(rect.top, 0);
+  const right = Math.min(rect.right, window.innerWidth - 1);
+  const bottom = Math.min(rect.bottom, window.innerHeight - 1);
+  if (right < left || bottom < top0) return undefined; // no visible area to hit-test
+  const cx = (left + right) / 2;
+  const cy = (top0 + bottom) / 2;
+
+  const top = document.elementFromPoint(cx, cy);
+  if (!top) return undefined;
+  if (top === el || el.contains(top)) return { hittable: true };
+  return {
+    hittable: false,
+    occludedBy: {
+      tag: top.tagName.toLowerCase(),
+      id: top.id || null,
+      classes: Array.from(top.classList).slice(0, 3),
+    },
+  };
+}
+
+// Effective visibility: is the element actually rendered to the user, accounting
+// for ancestors? The element's own computed display/opacity/visibility can look
+// fine while a parent hides the whole subtree. Walks up to find the hiding cause.
+// Note: opacity and display:none on an ancestor hide the subtree regardless of
+// the child's own styles; visibility:hidden inherits but a child can override it,
+// so we rely on the element's own computed visibility for that one.
+function effectiveVisibility(
+  el: Element,
+  rect: DOMRect,
+  cs: CSSStyleDeclaration,
+): { visible: true } | { visible: false; reason: string } {
+  if (cs.display === "none") return { visible: false, reason: "display:none" };
+
+  let node = el.parentElement;
+  for (let depth = 0; node && depth < MAX_ANCESTOR_WALK; node = node.parentElement, depth++) {
+    const acs = window.getComputedStyle(node);
+    if (acs.display === "none")
+      return { visible: false, reason: `ancestor ${refString(node)} display:none` };
+    if (parseFloat(acs.opacity) === 0)
+      return { visible: false, reason: `ancestor ${refString(node)} opacity:0` };
+    if (node.getAttribute("aria-hidden") === "true")
+      return { visible: false, reason: `ancestor ${refString(node)} aria-hidden` };
+  }
+
+  if (cs.visibility === "hidden" || cs.visibility === "collapse")
+    return { visible: false, reason: `visibility:${cs.visibility}` };
+  if (parseFloat(cs.opacity) === 0) return { visible: false, reason: "opacity:0" };
+  if (el.getAttribute("aria-hidden") === "true") return { visible: false, reason: "aria-hidden" };
+  if (rect.width === 0 || rect.height === 0) return { visible: false, reason: "zero-size" };
+
+  return { visible: true };
+}
+
 function pickStyles(cs: CSSStyleDeclaration, props: string[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (const p of props) {
@@ -152,6 +423,213 @@ function pickStyles(cs: CSSStyleDeclaration, props: string[]): Record<string, st
     if (v) out[p] = v;
   }
   return out;
+}
+
+// Some elements only take their implicit landmark role when they have an
+// accessible name (section -> region, form -> form). A name from aria-label,
+// aria-labelledby, or title is what counts here.
+function hasNamingAttribute(el: Element): boolean {
+  return (
+    !!el.getAttribute("aria-label")?.trim() ||
+    !!el.getAttribute("aria-labelledby")?.trim() ||
+    !!el.getAttribute("title")?.trim()
+  );
+}
+
+// Implicit ARIA role for common HTML tags, used when there's no explicit `role`
+// attribute. Best-effort: not the full HTML-AAM mapping, but covers the elements
+// agents reason about most. Some real roles are context-dependent (e.g. header is
+// only "banner" at the top level); we keep it simple.
+function implicitRole(el: Element): string | null {
+  const tag = el.tagName.toLowerCase();
+  switch (tag) {
+    case "a":
+    case "area":
+      return el.hasAttribute("href") ? "link" : null;
+    case "button":
+      return "button";
+    case "input": {
+      const t = (el.getAttribute("type") || "text").toLowerCase();
+      // A text-like input bound to a <datalist> via `list` exposes as a combobox.
+      if (el.hasAttribute("list") && ["text", "search", "email", "tel", "url"].includes(t)) {
+        return "combobox";
+      }
+      const map: Record<string, string> = {
+        checkbox: "checkbox",
+        radio: "radio",
+        range: "slider",
+        number: "spinbutton",
+        button: "button",
+        submit: "button",
+        reset: "button",
+        image: "button",
+        search: "searchbox",
+        email: "textbox",
+        tel: "textbox",
+        url: "textbox",
+        text: "textbox",
+      };
+      // Types not in the map (password, date/time family, color, file, hidden, …)
+      // have no corresponding ARIA role.
+      return map[t] ?? null;
+    }
+    case "select": {
+      // size > 1 (or multiple) presents as a listbox rather than a combobox.
+      const size = Number(el.getAttribute("size") || "0");
+      return el.hasAttribute("multiple") || size > 1 ? "listbox" : "combobox";
+    }
+    case "textarea":
+      return "textbox";
+    case "img":
+      return el.getAttribute("alt") === "" ? "presentation" : "img";
+    case "nav":
+      return "navigation";
+    case "main":
+      return "main";
+    case "header":
+      // banner/contentinfo only apply to a top-level header/footer, not one
+      // scoped inside a sectioning element.
+      return el.closest("article, aside, main, nav, section") ? null : "banner";
+    case "footer":
+      return el.closest("article, aside, main, nav, section") ? null : "contentinfo";
+    case "aside": {
+      // complementary unless scoped inside sectioning content without a name
+      // (closest must skip self, since <aside> matches the selector).
+      const scoped = el.parentElement?.closest("article, aside, main, nav, section");
+      return !scoped || hasNamingAttribute(el) ? "complementary" : null;
+    }
+    case "section":
+      // region/form are landmark roles only when the element has an accessible name.
+      return hasNamingAttribute(el) ? "region" : null;
+    case "article":
+      return "article";
+    case "dialog":
+      return "dialog";
+    case "form":
+      return hasNamingAttribute(el) ? "form" : null;
+    case "table":
+      return "table";
+    case "ul":
+    case "ol":
+      return "list";
+    case "li":
+      return "listitem";
+    case "h1":
+    case "h2":
+    case "h3":
+    case "h4":
+    case "h5":
+    case "h6":
+      return "heading";
+    default:
+      return null;
+  }
+}
+
+// Roles that take their accessible name from descendant text content. Only these
+// fall back to textContent; a container (div/section/nav/...) does not get a name
+// from the text it wraps, so we must not invent one for it.
+const NAME_FROM_CONTENT = new Set([
+  "button",
+  "checkbox",
+  "radio",
+  "switch",
+  "link",
+  "menuitem",
+  "menuitemcheckbox",
+  "menuitemradio",
+  "option",
+  "tab",
+  "treeitem",
+  "heading",
+  "cell",
+  "gridcell",
+  "columnheader",
+  "rowheader",
+  "row",
+  "tooltip",
+]);
+
+// Best-effort accessible name: aria-labelledby targets, then aria-label, then an
+// associated/wrapping <label>, then title/alt/placeholder, then visible text (only
+// for roles whose name comes from content). Not the full accname algorithm, but
+// enough for an agent to identify "the Submit button" rather than juggling selectors.
+function accessibleName(el: Element, role: string | null): string | undefined {
+  const labelledby = el.getAttribute("aria-labelledby");
+  if (labelledby) {
+    const txt = labelledby
+      .split(/\s+/)
+      .map(id => document.getElementById(id)?.textContent?.trim())
+      .filter(Boolean)
+      .join(" ");
+    if (txt) return txt.slice(0, 200);
+  }
+  const label = el.getAttribute("aria-label")?.trim();
+  if (label) return label.slice(0, 200);
+
+  if (
+    el instanceof HTMLInputElement ||
+    el instanceof HTMLTextAreaElement ||
+    el instanceof HTMLSelectElement
+  ) {
+    if (el.id) {
+      const forLabel = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
+      const txt = forLabel?.textContent?.trim();
+      if (txt) return txt.slice(0, 200);
+    }
+    const wrapping = el.closest("label")?.textContent?.trim();
+    if (wrapping) return wrapping.slice(0, 200);
+    if (el instanceof HTMLInputElement && el.placeholder) return el.placeholder.slice(0, 200);
+  }
+  if (el instanceof HTMLImageElement && el.alt) return el.alt.slice(0, 200);
+
+  const title = el.getAttribute("title")?.trim();
+  if (title) return title.slice(0, 200);
+
+  // Name from content only for roles that allow it (buttons, links, headings, ...).
+  if (role && NAME_FROM_CONTENT.has(role.trim().split(/\s+/)[0])) {
+    const text = el.textContent?.trim();
+    if (text) return text.slice(0, 200);
+  }
+  return undefined;
+}
+
+// Resolved accessibility info: role, accessible name, and key ARIA/control states.
+// This is how assistive tech (and increasingly agents) identify elements, and
+// missing/incorrect a11y is its own common bug class.
+function accessibilityInfo(el: Element): Record<string, unknown> | undefined {
+  const a11y: Record<string, unknown> = {};
+
+  const role = el.getAttribute("role") || implicitRole(el);
+  if (role) a11y.role = role;
+
+  const name = accessibleName(el, role);
+  if (name) a11y.name = name;
+
+  const states: Record<string, unknown> = {};
+  for (const attr of [
+    "aria-expanded",
+    "aria-checked",
+    "aria-selected",
+    "aria-pressed",
+    "aria-current",
+    "aria-disabled",
+  ]) {
+    const v = el.getAttribute(attr);
+    // Normalise "true"/"false" to booleans for a stable type, but keep token
+    // values intact (aria-checked/pressed can be "mixed", aria-current a token).
+    if (v !== null) states[attr.slice(5)] = v === "true" ? true : v === "false" ? false : v;
+  }
+  if (el.getAttribute("aria-hidden") === "true") states.hidden = true;
+  if ("disabled" in el && (el as { disabled?: boolean }).disabled) states.disabled = true;
+  const tabindex = el.getAttribute("tabindex");
+  if (tabindex !== null) {
+    const n = Number(tabindex);
+    states.tabindex = Number.isNaN(n) ? tabindex : n;
+  }
+  if (Object.keys(states).length > 0) a11y.states = states;
+
+  return Object.keys(a11y).length > 0 ? a11y : undefined;
 }
 
 // Live form/control state that isn't visible in static attributes (e.g. an
@@ -188,7 +666,7 @@ function elementState(el: Element): Record<string, unknown> | undefined {
 }
 
 function capValue(v: string): string {
-  return v.length > 1000 ? v.slice(0, 1000) + "…[truncated]" : v;
+  return v.length > 1000 ? `${v.slice(0, 1000)}…[truncated]` : v;
 }
 
 function queryDom(selector: string) {
@@ -203,26 +681,31 @@ function queryDom(selector: string) {
 // Named keys → DOM code/keyCode. keyCode is legacy but many handlers still read
 // it, so we set it for the common keys. Single printable chars are handled below.
 const NAMED_KEYS: Record<string, { code: string; keyCode: number }> = {
-  Enter:      { code: "Enter",      keyCode: 13 },
-  Tab:        { code: "Tab",        keyCode: 9 },
-  Escape:     { code: "Escape",     keyCode: 27 },
-  Backspace:  { code: "Backspace",  keyCode: 8 },
-  Delete:     { code: "Delete",     keyCode: 46 },
-  ArrowUp:    { code: "ArrowUp",    keyCode: 38 },
-  ArrowDown:  { code: "ArrowDown",  keyCode: 40 },
-  ArrowLeft:  { code: "ArrowLeft",  keyCode: 37 },
+  Enter: { code: "Enter", keyCode: 13 },
+  Tab: { code: "Tab", keyCode: 9 },
+  Escape: { code: "Escape", keyCode: 27 },
+  Backspace: { code: "Backspace", keyCode: 8 },
+  Delete: { code: "Delete", keyCode: 46 },
+  ArrowUp: { code: "ArrowUp", keyCode: 38 },
+  ArrowDown: { code: "ArrowDown", keyCode: 40 },
+  ArrowLeft: { code: "ArrowLeft", keyCode: 37 },
   ArrowRight: { code: "ArrowRight", keyCode: 39 },
-  " ":        { code: "Space",      keyCode: 32 },
+  " ": { code: "Space", keyCode: 32 },
 };
 
 function pressKey(selector: string, key: string) {
   const el = getEl(selector) as HTMLElement;
   el.focus?.();
   const named = NAMED_KEYS[key];
-  const keyCode = named ? named.keyCode : (key.length === 1 ? key.toUpperCase().charCodeAt(0) : 0);
-  const code = named ? named.code : (key.length === 1 ? `Key${key.toUpperCase()}` : key);
+  const keyCode = named ? named.keyCode : key.length === 1 ? key.toUpperCase().charCodeAt(0) : 0;
+  const code = named ? named.code : key.length === 1 ? `Key${key.toUpperCase()}` : key;
   const init: KeyboardEventInit & { keyCode: number; which: number } = {
-    key, code, keyCode, which: keyCode, bubbles: true, cancelable: true,
+    key,
+    code,
+    keyCode,
+    which: keyCode,
+    bubbles: true,
+    cancelable: true,
   };
   el.dispatchEvent(new KeyboardEvent("keydown", init));
   if (key.length === 1) el.dispatchEvent(new KeyboardEvent("keypress", init));
@@ -240,7 +723,7 @@ function getHtml(selector: string) {
   const truncated = html.length > MAX_HTML_CHARS;
   return {
     tag: el.tagName.toLowerCase(),
-    html: truncated ? html.slice(0, MAX_HTML_CHARS) + "…[truncated]" : html,
+    html: truncated ? `${html.slice(0, MAX_HTML_CHARS)}…[truncated]` : html,
     truncated,
   };
 }
@@ -273,7 +756,14 @@ const CLOBBER_WARNING =
   "component state). If it snaps back, change it in the source instead of here.";
 
 // Attributes frameworks commonly own and rewrite on render.
-const FRAMEWORK_OWNED_ATTRS = new Set(["class", "style", "value", "checked", "disabled", "selected"]);
+const FRAMEWORK_OWNED_ATTRS = new Set([
+  "class",
+  "style",
+  "value",
+  "checked",
+  "disabled",
+  "selected",
+]);
 
 const overrides: Array<() => void> = [];
 
@@ -319,7 +809,9 @@ function setAttribute(selector: string, name: string, value: string | null) {
 function setText(selector: string, text: string) {
   const el = getEl(selector);
   const prev = el.textContent;
-  overrides.push(() => { el.textContent = prev; });
+  overrides.push(() => {
+    el.textContent = prev;
+  });
   el.textContent = text;
   // textContent is almost always framework-controlled, so always warn.
   return {
@@ -333,15 +825,19 @@ function setText(selector: string, text: string) {
 function resetOverrides() {
   const count = overrides.length;
   // Undo in reverse so repeated edits to the same property unwind to the original.
-  while (overrides.length) overrides.pop()!();
-  return { reverted: count, note: "All bridge-applied DOM changes since connect have been undone (best effort — elements re-created by the framework since may not roll back)." };
+  while (overrides.length) overrides.pop()?.();
+  return {
+    reverted: count,
+    note: "All bridge-applied DOM changes since connect have been undone (best effort — elements re-created by the framework since may not roll back).",
+  };
 }
 
 // ── Type guard ────────────────────────────────────────────────────────────────
 
 function isCommand(v: unknown): v is Command {
   return (
-    typeof v === "object" && v !== null &&
+    typeof v === "object" &&
+    v !== null &&
     (v as Record<string, unknown>).type === "command" &&
     typeof (v as Record<string, unknown>).id === "string"
   );

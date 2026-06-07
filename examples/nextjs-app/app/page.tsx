@@ -2,12 +2,12 @@
 import { useState } from "react";
 
 const TEAM = [
-  { id: 1, name: "Alice Chen",   department: "Platform" },
-  { id: 2, name: "Bob Martinez", department: "Product"  },
-  { id: 3, name: "Carol Smith",  department: "Platform" },
-  { id: 4, name: "David Kim",    department: "Product"  },
-  { id: 5, name: "Eve Johnson",  department: "Data"     },
-  { id: 6, name: "Frank Lee",    department: "Data"     },
+  { id: 1, name: "Alice Chen", department: "Platform" },
+  { id: 2, name: "Bob Martinez", department: "Product" },
+  { id: 3, name: "Carol Smith", department: "Platform" },
+  { id: 4, name: "David Kim", department: "Product" },
+  { id: 5, name: "Eve Johnson", department: "Data" },
+  { id: 6, name: "Frank Lee", department: "Data" },
 ];
 
 export default function Page() {
@@ -34,8 +34,12 @@ function PageViewCounter() {
   return (
     <section id="counter-section">
       <h2>Page Views</h2>
-      <p>Total views: <strong id="view-count">{views}</strong></p>
-      <button id="record-view-btn" onClick={recordView}>Record View</button>
+      <p>
+        Total views: <strong id="view-count">{views}</strong>
+      </p>
+      <button type="button" id="record-view-btn" onClick={recordView}>
+        Record View
+      </button>
       <p style={{ color: "#888", fontSize: 13 }}>Each click should add 1 view.</p>
     </section>
   );
@@ -44,9 +48,8 @@ function PageViewCounter() {
 // BUG: case-sensitive name search
 function TeamSearch() {
   const [query, setQuery] = useState("");
-  const results = TEAM.filter(m =>
-    m.name.includes(query) ||
-    m.department.toLowerCase().includes(query.toLowerCase())
+  const results = TEAM.filter(
+    m => m.name.includes(query) || m.department.toLowerCase().includes(query.toLowerCase()),
   );
   return (
     <section id="search-section">
@@ -56,7 +59,10 @@ function TeamSearch() {
         type="text"
         placeholder="Search by name or department…"
         value={query}
-        onChange={e => { console.log("searching team for:", e.target.value); setQuery(e.target.value); }}
+        onChange={e => {
+          console.log("searching team for:", e.target.value);
+          setQuery(e.target.value);
+        }}
         style={{ width: "100%", padding: "6px 8px", marginBottom: 12, boxSizing: "border-box" }}
       />
       <p id="result-count" style={{ color: "#888", fontSize: 13 }}>
@@ -64,7 +70,11 @@ function TeamSearch() {
       </p>
       <ul id="member-list" style={{ listStyle: "none", padding: 0, margin: 0 }}>
         {results.map(m => (
-          <li key={m.id} data-member-id={m.id} style={{ padding: "6px 0", borderBottom: "1px solid #eee" }}>
+          <li
+            key={m.id}
+            data-member-id={m.id}
+            style={{ padding: "6px 0", borderBottom: "1px solid #eee" }}
+          >
             <strong>{m.name}</strong> — {m.department}
           </li>
         ))}
@@ -95,10 +105,12 @@ function ActivityFeed() {
   return (
     <section id="feed-section">
       <h2>Activity Feed</h2>
-      <button id="refresh-btn" onClick={refresh} disabled={loading}>
+      <button type="button" id="refresh-btn" onClick={refresh} disabled={loading}>
         {loading ? "Loading…" : "Refresh Feed"}
       </button>
-      <p id="feed-status" style={{ color: "#888", fontSize: 13, marginTop: 8 }}>{status}</p>
+      <p id="feed-status" style={{ color: "#888", fontSize: 13, marginTop: 8 }}>
+        {status}
+      </p>
     </section>
   );
 }

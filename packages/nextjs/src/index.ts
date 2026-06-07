@@ -1,6 +1,6 @@
-import type { NextConfig } from "next";
 import type { BridgeOptions } from "@feedthrough/core";
 import { FeedthroughPlugin } from "@feedthrough/webpack";
+import type { NextConfig } from "next";
 
 /**
  * Wraps your Next.js config to inject the Feedthrough bridge in dev mode.
@@ -17,6 +17,7 @@ export function withFeedthrough(options: BridgeOptions = {}) {
   return (nextConfig: NextConfig = {}): NextConfig => ({
     ...nextConfig,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: Next.js passes an untyped webpack config and context
     webpack(config: any, ctx: any) {
       if (ctx.dev && !ctx.isServer) {
         config.plugins ??= [];

@@ -1,6 +1,6 @@
+import type { BridgeOptions } from "@feedthrough/core";
 import { test as baseTest } from "@playwright/test";
 import { bridgeBundle } from "./generated/bundle.js";
-import type { BridgeOptions } from "@feedthrough/core";
 
 export { expect } from "@playwright/test";
 

@@ -1,11 +1,11 @@
 export type ToolInput = { name: string; type: string; desc: string };
 
 export type Tool = {
-  id: string;            // URL-safe slug used as the anchor on /tools
-  name: string;          // signature shown on cards
-  short: string;         // one-line description for index Tools cards
-  long: string;          // fuller description for the /tools page
-  inputs?: ToolInput[];  // typed inputs, if any
+  id: string; // URL-safe slug used as the anchor on /tools
+  name: string; // signature shown on cards
+  short: string; // one-line description for index Tools cards
+  long: string; // fuller description for the /tools page
+  inputs?: ToolInput[]; // typed inputs, if any
 };
 
 export const tools: Tool[] = [
@@ -46,17 +46,26 @@ export const tools: Tool[] = [
     long: "Dispatches keydown/keypress/keyup on an element — Enter to submit a search, Escape to close a modal, Tab to move focus, ArrowUp/ArrowDown in a list. Use named keys (Enter, Escape, Tab, Backspace, Delete, ArrowUp/Down/Left/Right) or a single character. Note: it fires key handlers but does not insert text into inputs — use fill to set a value, then press_key for the submit/shortcut.",
     inputs: [
       { name: "selector", type: "string", desc: "CSS selector for the element to receive the key" },
-      { name: "key", type: "string", desc: "A key name (Enter, Escape, ArrowDown, …) or a single character" },
+      {
+        name: "key",
+        type: "string",
+        desc: "A key name (Enter, Escape, ArrowDown, …) or a single character",
+      },
     ],
   },
   {
     id: "inspect-element",
     name: "inspect_element(selector, properties?)",
-    short: "Tag, attributes, bounding rect, computed styles, and live form state",
-    long: "Returns full details about a single element: tag, id, classes, all attributes, text content, bounding rect (top/right/bottom/left/width/height plus page scroll and an inViewport flag), a curated set of computed styles (layout, box model, typography, positioning, flex/grid), and live form state where applicable (an input's current value, checked, disabled, readOnly, etc.). Pass properties to additionally read any specific computed CSS properties by name — they come back under a requested object. Note: addEventListener-registered handlers can't be read from the page; only inline on* handler attributes appear (under attributes).",
+    short:
+      "Tag, attributes, rect, path, styles, overflow, visibility, occlusion, a11y, and form state",
+    long: "Returns full details about a single element: tag, id, classes, all attributes, text content, bounding rect (top/right/bottom/left/width/height plus page scroll and an inViewport flag), a compact ancestor path (like 'body > main > div#app > button.cta') for structural context, a curated set of computed styles (layout, box model, typography, positioning, flex/grid), an overflow block when content is clipped or overflowing (scroll vs client size plus per-axis x/y flags), a clipped block when an ancestor's overflow cuts the element off (naming the clipping ancestor and which edges), an effective-visibility check (a visible boolean, plus a hiddenReason like 'ancestor div#modal display:none' or 'opacity:0' when it isn't, accounting for ancestors), an occlusion check (a hittable boolean from a center-point hit-test, plus an occludedBy reference to whatever covers it), an a11y block (resolved role, best-effort accessible name, and key states like expanded, checked, selected, disabled, hidden, and tabindex), a pseudo block with ::before/::after content when set (icon fonts, generated text), and live form state where applicable (an input's current value, checked, disabled, readOnly, etc.). Pass properties to additionally read any specific computed CSS properties by name — they come back under a requested object. Note: addEventListener-registered handlers can't be read from the page; only inline on* handler attributes appear (under attributes).",
     inputs: [
       { name: "selector", type: "string", desc: "CSS selector — should match exactly one element" },
-      { name: "properties", type: "string[] (optional)", desc: "Extra computed CSS properties to read by name, e.g. ['transform', 'z-index', 'margin-top']" },
+      {
+        name: "properties",
+        type: "string[] (optional)",
+        desc: "Extra computed CSS properties to read by name, e.g. ['transform', 'z-index', 'margin-top']",
+      },
     ],
   },
   {
@@ -73,9 +82,21 @@ export const tools: Tool[] = [
     long: "Returns console output captured since the bridge connected. Covers every console method — log/warn/error/info/debug plus dir, table, assert, trace, count, countReset, time/timeEnd/timeLog, group/groupCollapsed/groupEnd, and clear. Uncaught exceptions and unhandled promise rejections are captured too (level error, method uncaught / unhandledrejection) even though the app never logged them. Each entry has a level; rich methods carry a method field, and trace/assert/uncaught entries include a stack. When the app is noisy, pass levels: ['error'] so real errors aren't buried, use match to narrow by content, and use since (a ms timestamp) to see only what happened after an action.",
     inputs: [
       { name: "limit", type: "number (optional)", desc: "Return only the N most recent entries" },
-      { name: "levels", type: "('log'|'warn'|'error'|'info'|'debug')[] (optional)", desc: "Restrict to these levels — e.g. ['error'] to skip noisy warn/info/debug" },
-      { name: "match", type: "string (optional)", desc: "Case-insensitive substring filter on the serialized message content" },
-      { name: "since", type: "number (optional)", desc: "Only entries with ts >= this (ms epoch). Scope to 'what happened after I did X'." },
+      {
+        name: "levels",
+        type: "('log'|'warn'|'error'|'info'|'debug')[] (optional)",
+        desc: "Restrict to these levels — e.g. ['error'] to skip noisy warn/info/debug",
+      },
+      {
+        name: "match",
+        type: "string (optional)",
+        desc: "Case-insensitive substring filter on the serialized message content",
+      },
+      {
+        name: "since",
+        type: "number (optional)",
+        desc: "Only entries with ts >= this (ms epoch). Scope to 'what happened after I did X'.",
+      },
     ],
   },
   {
@@ -84,8 +105,16 @@ export const tools: Tool[] = [
     short: "Fetch + XHR with headers and request/response bodies, capped at 10 KB",
     long: "Returns every fetch and XHR captured since the bridge connected, including URL, method, HTTP status, duration, request and response headers, and request and response bodies. Bodies are capped at 10 KB each — anything longer is truncated with a marker; binary responses (image/video/audio/font/octet-stream/pdf/zip) are summarised as a placeholder. Use this to find failed requests (4xx/5xx), wrong URLs, slow calls, or to inspect what the app actually sent or received. Use filter to narrow by URL/method and since (a ms timestamp) to see only requests that fired after an action.",
     inputs: [
-      { name: "filter", type: "string (optional)", desc: "Filter by URL substring or HTTP method, e.g. 'api' or 'POST'" },
-      { name: "since", type: "number (optional)", desc: "Only requests with ts >= this (ms epoch). Scope to 'what fired after I did X'." },
+      {
+        name: "filter",
+        type: "string (optional)",
+        desc: "Filter by URL substring or HTTP method, e.g. 'api' or 'POST'",
+      },
+      {
+        name: "since",
+        type: "number (optional)",
+        desc: "Only requests with ts >= this (ms epoch). Scope to 'what fired after I did X'.",
+      },
     ],
   },
   {
@@ -114,7 +143,11 @@ export const tools: Tool[] = [
     long: "Sets one or more inline CSS properties on an element to preview a visual change live — shrink a label that doesn't fit, adjust padding, width, etc. This edits the running DOM only: it is NOT written to your source and resets on reload/HMR, so it's a preview the agent shows you, then persists by editing the actual CSS/component source once you're happy. Inline styles override the stylesheet and usually survive re-renders. Undo with reset_overrides.",
     inputs: [
       { name: "selector", type: "string", desc: "CSS selector — should match one element" },
-      { name: "properties", type: "Record<string,string>", desc: "CSS property → value map, e.g. { 'font-size': '13px', 'white-space': 'nowrap' }" },
+      {
+        name: "properties",
+        type: "Record<string,string>",
+        desc: "CSS property → value map, e.g. { 'font-size': '13px', 'white-space': 'nowrap' }",
+      },
     ],
   },
   {

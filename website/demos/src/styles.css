@@ -15,9 +15,16 @@
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
-html, body, #root { height: 100%; margin: 0; }
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
 
 body {
   background: var(--bg);
@@ -39,7 +46,11 @@ body {
   align-items: center;
   justify-content: center;
   padding: 22px 28px;
-  background: radial-gradient(ellipse 90% 70% at 50% 0%, rgba(34, 211, 238, 0.06) 0%, transparent 70%);
+  background: radial-gradient(
+    ellipse 90% 70% at 50% 0%,
+    rgba(34, 211, 238, 0.06) 0%,
+    transparent 70%
+  );
 }
 
 /* ── Chat panel ────────────────────────────────────────────────────────── */
@@ -65,10 +76,21 @@ body {
   color: var(--text-muted);
 }
 
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
 .status-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--accent); animation: pulse 2s infinite;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2s infinite;
 }
 
 .chat-body {
@@ -89,11 +111,23 @@ body {
   text-transform: uppercase;
   margin-bottom: 4px;
 }
-.msg p { margin: 0; font-size: 0.95rem; line-height: 1.5; }
-.msg-user .who { color: var(--text-dim); }
-.msg-user p { color: var(--text-muted); }
-.msg-agent .who { color: var(--accent); }
-.msg-agent p { color: var(--text); }
+.msg p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.msg-user .who {
+  color: var(--text-dim);
+}
+.msg-user p {
+  color: var(--text-muted);
+}
+.msg-agent .who {
+  color: var(--accent);
+}
+.msg-agent p {
+  color: var(--text);
+}
 
 /* tool-call chips */
 .tool {
@@ -107,11 +141,22 @@ body {
   font-family: var(--font-mono);
   font-size: 0.82rem;
 }
-.tool-icon { font-size: 0.8rem; }
-.tool-running .tool-icon { color: var(--accent); animation: pulse 1s infinite; }
-.tool-done .tool-icon { color: var(--green); }
-.tool-name { color: var(--accent); }
-.tool-arg { color: var(--text-muted); }
+.tool-icon {
+  font-size: 0.8rem;
+}
+.tool-running .tool-icon {
+  color: var(--accent);
+  animation: pulse 1s infinite;
+}
+.tool-done .tool-icon {
+  color: var(--green);
+}
+.tool-name {
+  color: var(--accent);
+}
+.tool-arg {
+  color: var(--text-muted);
+}
 
 /* code / diff blocks */
 .code {
@@ -134,12 +179,31 @@ body {
   font-size: 0.82rem;
   line-height: 1.6;
 }
-.ln { padding: 0 12px; white-space: pre; color: var(--text); }
-.gutter { display: inline-block; width: 1ch; margin-right: 10px; color: var(--text-dim); }
-.ln-del { background: rgba(248, 113, 113, 0.1); color: var(--red); }
-.ln-del .gutter { color: var(--red); }
-.ln-add { background: rgba(52, 211, 153, 0.1); color: var(--green); }
-.ln-add .gutter { color: var(--green); }
+.ln {
+  padding: 0 12px;
+  white-space: pre;
+  color: var(--text);
+}
+.gutter {
+  display: inline-block;
+  width: 1ch;
+  margin-right: 10px;
+  color: var(--text-dim);
+}
+.ln-del {
+  background: rgba(248, 113, 113, 0.1);
+  color: var(--red);
+}
+.ln-del .gutter {
+  color: var(--red);
+}
+.ln-add {
+  background: rgba(52, 211, 153, 0.1);
+  color: var(--green);
+}
+.ln-add .gutter {
+  color: var(--green);
+}
 
 /* ── Demo app cards ────────────────────────────────────────────────────── */
 
@@ -151,10 +215,24 @@ body {
   background: var(--bg-card);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
 }
-.card-title { margin: 0 0 6px; font-size: 1.25rem; }
-.card-sub { margin: 0 0 24px; color: var(--text-muted); font-size: 0.9rem; }
+.card-title {
+  margin: 0 0 6px;
+  font-size: 1.25rem;
+}
+.card-sub {
+  margin: 0 0 24px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
 
-.list { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .row {
   display: flex;
   align-items: center;
@@ -163,16 +241,28 @@ body {
   border: 1px solid transparent;
   border-radius: 10px;
   font-size: 1rem;
-  transition: background 0.18s, border-color 0.18s;
+  transition:
+    background 0.18s,
+    border-color 0.18s;
 }
-.row .box { font-size: 1.15rem; color: var(--text-dim); transition: color 0.18s; }
+.row .box {
+  font-size: 1.15rem;
+  color: var(--text-dim);
+  transition: color 0.18s;
+}
 .row-on {
   background: var(--accent-soft);
   border-color: rgba(34, 211, 238, 0.35);
 }
-.row-on .box { color: var(--accent); }
+.row-on .box {
+  color: var(--accent);
+}
 
-.summary { list-style: none; margin: 16px 0 24px; padding: 0; }
+.summary {
+  list-style: none;
+  margin: 16px 0 24px;
+  padding: 0;
+}
 .summary li {
   display: flex;
   justify-content: space-between;
@@ -181,9 +271,17 @@ body {
   color: var(--text-muted);
   border-bottom: 1px solid var(--border);
 }
-.summary li span:last-child { color: var(--text); font-variant-numeric: tabular-nums; }
-.summary-total { border-bottom: none; font-weight: 600; }
-.summary-total span { color: var(--text); }
+.summary li span:last-child {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.summary-total {
+  border-bottom: none;
+  font-weight: 600;
+}
+.summary-total span {
+  color: var(--text);
+}
 
 /* the deliberately-too-small button */
 .cta {
@@ -201,7 +299,9 @@ body {
   overflow: hidden;
   text-overflow: clip;
   cursor: pointer;
-  transition: width 0.35s ease, padding 0.35s ease;
+  transition:
+    width 0.35s ease,
+    padding 0.35s ease;
 }
 .cta-fixed {
   width: auto;

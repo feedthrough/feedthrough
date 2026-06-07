@@ -1,12 +1,20 @@
 ---
 const frameworks = [
-  { name: "Vite",       pkg: "@feedthrough/vite",       mech: "Plugin · virtual module + transformIndexHtml" },
-  { name: "Next.js",    pkg: "@feedthrough/nextjs",     mech: "Wraps the dev webpack config" },
-  { name: "Nuxt",       pkg: "@feedthrough/nuxt",       mech: "Nuxt 3 module — registers the Vite plugin" },
-  { name: "SvelteKit",  pkg: "@feedthrough/sveltekit",  mech: "Server handle hook · transformPageChunk" },
-  { name: "Remix",      pkg: "@feedthrough/remix",      mech: "Vite dev-server middleware, streams HTML" },
-  { name: "webpack",    pkg: "@feedthrough/webpack",    mech: "Dev-only entry plugin" },
-  { name: "Cypress",    pkg: "@feedthrough/cypress",    mech: "cypress/support/e2e.ts — window:before:load" },
+  { name: "Vite", pkg: "@feedthrough/vite", mech: "Plugin · virtual module + transformIndexHtml" },
+  { name: "Next.js", pkg: "@feedthrough/nextjs", mech: "Wraps the dev webpack config" },
+  { name: "Nuxt", pkg: "@feedthrough/nuxt", mech: "Nuxt 3 module — registers the Vite plugin" },
+  {
+    name: "SvelteKit",
+    pkg: "@feedthrough/sveltekit",
+    mech: "Server handle hook · transformPageChunk",
+  },
+  { name: "Remix", pkg: "@feedthrough/remix", mech: "Vite dev-server middleware, streams HTML" },
+  { name: "webpack", pkg: "@feedthrough/webpack", mech: "Dev-only entry plugin" },
+  {
+    name: "Cypress",
+    pkg: "@feedthrough/cypress",
+    mech: "cypress/support/e2e.ts — window:before:load",
+  },
   { name: "Playwright", pkg: "@feedthrough/playwright", mech: "Test fixture — page.addInitScript" },
 ];
 ---

@@ -1,6 +1,6 @@
-import { defineNuxtModule, addVitePlugin } from "@nuxt/kit";
-import { feedthrough } from "@feedthrough/vite";
 import type { BridgeOptions } from "@feedthrough/core";
+import { feedthrough } from "@feedthrough/vite";
+import { addVitePlugin, defineNuxtModule } from "@nuxt/kit";
 
 /**
  * Nuxt module that injects the Feedthrough bridge in dev mode.
@@ -26,6 +26,7 @@ export default defineNuxtModule<BridgeOptions>({
   setup(options, nuxt) {
     if (!nuxt.options.dev) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: addVitePlugin parameter type does not match the plugin inferred type
     addVitePlugin(() => feedthrough(options) as any);
   },
 });

@@ -1,0 +1,41 @@
+name: Docker (MCP)
+
+# Guards the image the Glama MCP directory builds: it must build and the server
+# must complete an MCP stdio handshake. Scoped to changes that can affect it.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/mcp/**"
+      - "Dockerfile"
+      - ".dockerignore"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "tsconfig.base.json"
+      - "scripts/smoke-mcp-stdio.mjs"
+      - ".github/workflows/docker.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/mcp/**"
+      - "Dockerfile"
+      - ".dockerignore"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "tsconfig.base.json"
+      - "scripts/smoke-mcp-stdio.mjs"
+      - ".github/workflows/docker.yml"
+
+jobs:
+  build-and-smoke:
+    name: Build image and smoke-test stdio
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - name: Build image
+        run: docker build -t feedthrough-mcp:ci .
+      - name: Smoke-test the MCP stdio handshake
+        run: node scripts/smoke-mcp-stdio.mjs docker run -i --rm feedthrough-mcp:ci

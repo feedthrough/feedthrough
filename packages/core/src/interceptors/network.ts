@@ -33,15 +33,22 @@ export class NetworkInterceptor {
       const requestBody = serializeRequestBody(init?.body);
 
       const pending: NetworkMessage = {
-        type: "network", ts: startTs, requestId, method, url,
-        requestHeaders, requestBody,
+        type: "network",
+        ts: startTs,
+        requestId,
+        method,
+        url,
+        requestHeaders,
+        requestBody,
       };
       pushRequest(requests, pending);
 
       try {
         const res = await orig(input, init);
         Object.assign(pending, {
-          ts: Date.now(), status: res.status, duration: Date.now() - startTs,
+          ts: Date.now(),
+          status: res.status,
+          duration: Date.now() - startTs,
           responseHeaders: headersToObject(res.headers),
         });
 
@@ -54,7 +61,8 @@ export class NetworkInterceptor {
         // Network-level failure (DNS, connection refused, CORS, abort) — the
         // fetch rejects rather than resolving, so record it before rethrowing.
         Object.assign(pending, {
-          ts: Date.now(), duration: Date.now() - startTs,
+          ts: Date.now(),
+          duration: Date.now() - startTs,
           error: e instanceof Error ? e.message : String(e),
         });
         throw e;
@@ -74,7 +82,13 @@ export class NetworkInterceptor {
       const requestHeaders: Record<string, string> = {};
 
       const origOpen = xhr.open.bind(xhr);
-      xhr.open = (m: string, u: string | URL, async?: boolean, user?: string | null, password?: string | null) => {
+      xhr.open = (
+        m: string,
+        u: string | URL,
+        async?: boolean,
+        user?: string | null,
+        password?: string | null,
+      ) => {
         method = m.toUpperCase();
         url = String(u);
         origOpen(m, String(u), async ?? true, user, password);
@@ -92,7 +106,11 @@ export class NetworkInterceptor {
         const startTs = Date.now();
         const requestBody = serializeRequestBody(body ?? undefined);
         const pending: NetworkMessage = {
-          type: "network", ts: startTs, requestId, method, url,
+          type: "network",
+          ts: startTs,
+          requestId,
+          method,
+          url,
           requestHeaders: Object.keys(requestHeaders).length ? { ...requestHeaders } : undefined,
           requestBody,
         };
@@ -105,9 +123,13 @@ export class NetworkInterceptor {
             } else {
               responseBody = `[XHR responseType=${xhr.responseType}]`;
             }
-          } catch { /* ignore — accessing responseText on non-text type throws */ }
+          } catch {
+            /* ignore — accessing responseText on non-text type throws */
+          }
           Object.assign(pending, {
-            ts: Date.now(), status: xhr.status, duration: Date.now() - startTs,
+            ts: Date.now(),
+            status: xhr.status,
+            duration: Date.now() - startTs,
             responseBody,
             responseHeaders: parseRawHeaders(xhr.getAllResponseHeaders()),
           });
@@ -137,11 +159,7 @@ export class NetworkInterceptor {
 }
 
 function resolveMethod(input: RequestInfo | URL, init?: RequestInit): string {
-  return (
-    init?.method ??
-    (input instanceof Request ? input.method : null) ??
-    "GET"
-  ).toUpperCase();
+  return (init?.method ?? (input instanceof Request ? input.method : null) ?? "GET").toUpperCase();
 }
 
 function pushRequest(requests: NetworkMessage[], msg: NetworkMessage): void {
@@ -149,13 +167,18 @@ function pushRequest(requests: NetworkMessage[], msg: NetworkMessage): void {
   if (requests.length > MAX_REQUESTS) requests.shift();
 }
 
-function mergeRequestHeaders(input: RequestInfo | URL, init?: RequestInit): Record<string, string> | undefined {
+function mergeRequestHeaders(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Record<string, string> | undefined {
   // If init.headers is set, fetch ignores input.headers — match that.
   const source = init?.headers ?? (input instanceof Request ? input.headers : undefined);
   if (!source) return undefined;
   const out: Record<string, string> = {};
   if (source instanceof Headers) {
-    source.forEach((v, k) => { out[k] = v; });
+    source.forEach((v, k) => {
+      out[k] = v;
+    });
   } else if (Array.isArray(source)) {
     for (const [k, v] of source) out[k] = String(v);
   } else {
@@ -166,7 +189,9 @@ function mergeRequestHeaders(input: RequestInfo | URL, init?: RequestInit): Reco
 
 function headersToObject(headers: Headers): Record<string, string> {
   const out: Record<string, string> = {};
-  headers.forEach((v, k) => { out[k] = v; });
+  headers.forEach((v, k) => {
+    out[k] = v;
+  });
   return out;
 }
 
@@ -192,18 +217,26 @@ function serializeRequestBody(body: BodyInit | Document | null | undefined): str
     body.forEach((v, k) => {
       obj[k] = v instanceof File ? `[File: ${v.name}, ${v.size} bytes]` : v;
     });
-    try { return capText(JSON.stringify(obj)); } catch { return "[FormData]"; }
+    try {
+      return capText(JSON.stringify(obj));
+    } catch {
+      return "[FormData]";
+    }
   }
   if (body instanceof Blob) return `[Blob: ${body.size} bytes, ${body.type || "unknown"}]`;
   if (body instanceof ArrayBuffer) return `[ArrayBuffer: ${body.byteLength} bytes]`;
   if (ArrayBuffer.isView(body)) return `[${body.constructor.name}: ${body.byteLength} bytes]`;
   if (body instanceof ReadableStream) return "[ReadableStream]";
-  try { return capText(JSON.stringify(body)); } catch { return String(body); }
+  try {
+    return capText(JSON.stringify(body));
+  } catch {
+    return String(body);
+  }
 }
 
 function capText(text: string): string {
   if (text.length <= MAX_BODY_CHARS) return text;
-  return text.slice(0, MAX_BODY_CHARS) + `…[truncated, ${text.length - MAX_BODY_CHARS} more chars]`;
+  return `${text.slice(0, MAX_BODY_CHARS)}…[truncated, ${text.length - MAX_BODY_CHARS} more chars]`;
 }
 
 function captureResponseBody(res: Response, pending: NetworkMessage): void {
@@ -213,7 +246,13 @@ function captureResponseBody(res: Response, pending: NetworkMessage): void {
     pending.responseBody = `[${describe(ct)}${len ? `, ${len} bytes` : ""}, ${ct || "no content-type"}]`;
     return;
   }
-  readBounded(res).then(body => { pending.responseBody = body; }).catch(() => { /* aborted/locked */ });
+  readBounded(res)
+    .then(body => {
+      pending.responseBody = body;
+    })
+    .catch(() => {
+      /* aborted/locked */
+    });
 }
 
 async function readBounded(res: Response): Promise<string> {
@@ -232,22 +271,29 @@ async function readBounded(res: Response): Promise<string> {
       if (done) break;
       bytes += value.byteLength;
       text += decoder.decode(value, { stream: true });
-      if (bytes >= MAX_BODY_BYTES || text.length >= MAX_BODY_CHARS) { truncated = true; break; }
+      if (bytes >= MAX_BODY_BYTES || text.length >= MAX_BODY_CHARS) {
+        truncated = true;
+        break;
+      }
     }
   } finally {
-    reader.cancel().catch(() => { /* already closed */ });
+    reader.cancel().catch(() => {
+      /* already closed */
+    });
   }
   if (!truncated) return capText(text);
-  return text.slice(0, MAX_BODY_CHARS) + "…[truncated]";
+  return `${text.slice(0, MAX_BODY_CHARS)}…[truncated]`;
 }
 
 function isSkippable(ct: string): boolean {
-  return /^(image|video|audio|font)\//.test(ct) ||
-         ct.startsWith("application/octet-stream") ||
-         ct.startsWith("application/pdf") ||
-         ct.startsWith("application/zip") ||
-         ct.startsWith("text/event-stream") ||      // SSE — never-ending stream
-         ct.startsWith("application/x-ndjson");      // streaming JSON lines
+  return (
+    /^(image|video|audio|font)\//.test(ct) ||
+    ct.startsWith("application/octet-stream") ||
+    ct.startsWith("application/pdf") ||
+    ct.startsWith("application/zip") ||
+    ct.startsWith("text/event-stream") || // SSE — never-ending stream
+    ct.startsWith("application/x-ndjson")
+  ); // streaming JSON lines
 }
 
 function describe(ct: string): string {
