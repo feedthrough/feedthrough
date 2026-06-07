@@ -70,6 +70,9 @@ The bridge is injected into the page, so you see framework state, not just the r
 - Console errors often include stack traces pointing to the exact source line
 - Network requests include duration — slow requests are visible immediately
 - All data is captured from the moment the bridge connects; reload the page to reset
+- \`set_style\` previews CSS fixes live, but it's also a quick way to show the user something:
+  outline or highlight an element you're explaining (they can see the live page), then call
+  \`reset_overrides\` to undo it
 `;
 
 export async function startServer(port = 8765): Promise<void> {
