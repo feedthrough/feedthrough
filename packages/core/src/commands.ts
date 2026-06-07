@@ -519,11 +519,35 @@ function implicitRole(el: Element): string | null {
   }
 }
 
+// Roles that take their accessible name from descendant text content. Only these
+// fall back to textContent; a container (div/section/nav/...) does not get a name
+// from the text it wraps, so we must not invent one for it.
+const NAME_FROM_CONTENT = new Set([
+  "button",
+  "checkbox",
+  "radio",
+  "switch",
+  "link",
+  "menuitem",
+  "menuitemcheckbox",
+  "menuitemradio",
+  "option",
+  "tab",
+  "treeitem",
+  "heading",
+  "cell",
+  "gridcell",
+  "columnheader",
+  "rowheader",
+  "row",
+  "tooltip",
+]);
+
 // Best-effort accessible name: aria-labelledby targets, then aria-label, then an
-// associated/wrapping <label>, then title/alt/placeholder, then visible text. Not
-// the full accname algorithm, but enough for an agent to identify "the Submit
-// button" rather than juggling CSS selectors.
-function accessibleName(el: Element): string | undefined {
+// associated/wrapping <label>, then title/alt/placeholder, then visible text (only
+// for roles whose name comes from content). Not the full accname algorithm, but
+// enough for an agent to identify "the Submit button" rather than juggling selectors.
+function accessibleName(el: Element, role: string | null): string | undefined {
   const labelledby = el.getAttribute("aria-labelledby");
   if (labelledby) {
     const txt = labelledby
@@ -555,8 +579,11 @@ function accessibleName(el: Element): string | undefined {
   const title = el.getAttribute("title")?.trim();
   if (title) return title.slice(0, 200);
 
-  const text = el.textContent?.trim();
-  if (text) return text.slice(0, 200);
+  // Name from content only for roles that allow it (buttons, links, headings, ...).
+  if (role && NAME_FROM_CONTENT.has(role.trim().split(/\s+/)[0])) {
+    const text = el.textContent?.trim();
+    if (text) return text.slice(0, 200);
+  }
   return undefined;
 }
 
@@ -569,7 +596,7 @@ function accessibilityInfo(el: Element): Record<string, unknown> | undefined {
   const role = el.getAttribute("role") || implicitRole(el);
   if (role) a11y.role = role;
 
-  const name = accessibleName(el);
+  const name = accessibleName(el, role);
   if (name) a11y.name = name;
 
   const states: Record<string, unknown> = {};

@@ -270,6 +270,8 @@ test("inspect_element reports a11y, effective visibility, and hittability", asyn
     selector: "#counter-section",
   });
   expect(unnamedSection.a11y?.role).toBeUndefined();
+  // A container does not take its name from wrapped text, so none is invented.
+  expect(unnamedSection.a11y?.name).toBeUndefined();
   await server.command("set_attribute", {
     selector: "#counter-section",
     name: "aria-label",
@@ -277,6 +279,7 @@ test("inspect_element reports a11y, effective visibility, and hittability", asyn
   });
   const namedSection = await server.command<Inspected>("inspect", { selector: "#counter-section" });
   expect(namedSection.a11y?.role).toBe("region");
+  expect(namedSection.a11y?.name).toBe("Page views");
   await server.command("reset_overrides");
 
   // Hiding an ancestor makes the element not visible, and the reason names the
