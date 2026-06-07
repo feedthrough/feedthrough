@@ -418,6 +418,17 @@ function pickStyles(cs: CSSStyleDeclaration, props: string[]): Record<string, st
   return out;
 }
 
+// Some elements only take their implicit landmark role when they have an
+// accessible name (section -> region, form -> form). A name from aria-label,
+// aria-labelledby, or title is what counts here.
+function hasNamingAttribute(el: Element): boolean {
+  return (
+    !!el.getAttribute("aria-label")?.trim() ||
+    !!el.getAttribute("aria-labelledby")?.trim() ||
+    !!el.getAttribute("title")?.trim()
+  );
+}
+
 // Implicit ARIA role for common HTML tags, used when there's no explicit `role`
 // attribute. Best-effort: not the full HTML-AAM mapping, but covers the elements
 // agents reason about most. Some real roles are context-dependent (e.g. header is
@@ -432,6 +443,10 @@ function implicitRole(el: Element): string | null {
       return "button";
     case "input": {
       const t = (el.getAttribute("type") || "text").toLowerCase();
+      // A text-like input bound to a <datalist> via `list` exposes as a combobox.
+      if (el.hasAttribute("list") && ["text", "search", "email", "tel", "url"].includes(t)) {
+        return "combobox";
+      }
       const map: Record<string, string> = {
         checkbox: "checkbox",
         radio: "radio",
@@ -447,10 +462,15 @@ function implicitRole(el: Element): string | null {
         url: "textbox",
         text: "textbox",
       };
-      return map[t] ?? (t === "hidden" ? null : "textbox");
+      // Types not in the map (password, date/time family, color, file, hidden, …)
+      // have no corresponding ARIA role.
+      return map[t] ?? null;
     }
-    case "select":
-      return el.hasAttribute("multiple") ? "listbox" : "combobox";
+    case "select": {
+      // size > 1 (or multiple) presents as a listbox rather than a combobox.
+      const size = Number(el.getAttribute("size") || "0");
+      return el.hasAttribute("multiple") || size > 1 ? "listbox" : "combobox";
+    }
     case "textarea":
       return "textbox";
     case "img":
@@ -465,16 +485,21 @@ function implicitRole(el: Element): string | null {
       return el.closest("article, aside, main, nav, section") ? null : "banner";
     case "footer":
       return el.closest("article, aside, main, nav, section") ? null : "contentinfo";
-    case "aside":
-      return "complementary";
+    case "aside": {
+      // complementary unless scoped inside sectioning content without a name
+      // (closest must skip self, since <aside> matches the selector).
+      const scoped = el.parentElement?.closest("article, aside, main, nav, section");
+      return !scoped || hasNamingAttribute(el) ? "complementary" : null;
+    }
     case "section":
-      return "region";
+      // region/form are landmark roles only when the element has an accessible name.
+      return hasNamingAttribute(el) ? "region" : null;
     case "article":
       return "article";
     case "dialog":
       return "dialog";
     case "form":
-      return "form";
+      return hasNamingAttribute(el) ? "form" : null;
     case "table":
       return "table";
     case "ul":

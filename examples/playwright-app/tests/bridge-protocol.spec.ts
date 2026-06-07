@@ -265,6 +265,20 @@ test("inspect_element reports a11y, effective visibility, and hittability", asyn
   expect(aria.a11y?.states?.disabled).toBe(true);
   await server.command("reset_overrides");
 
+  // A <section> is only a 'region' landmark once it has an accessible name.
+  const unnamedSection = await server.command<Inspected>("inspect", {
+    selector: "#counter-section",
+  });
+  expect(unnamedSection.a11y?.role).toBeUndefined();
+  await server.command("set_attribute", {
+    selector: "#counter-section",
+    name: "aria-label",
+    value: "Page views",
+  });
+  const namedSection = await server.command<Inspected>("inspect", { selector: "#counter-section" });
+  expect(namedSection.a11y?.role).toBe("region");
+  await server.command("reset_overrides");
+
   // Hiding an ancestor makes the element not visible, and the reason names the
   // cause walked up the tree.
   await server.command("set_style", { selector: "#feed-section", properties: { display: "none" } });
