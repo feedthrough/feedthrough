@@ -11,6 +11,13 @@ FROM node:22-slim
 # transitive Playwright install tries to download one.
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
+# tini as PID 1 so the server gets proper signal handling: SIGTERM/SIGINT reach
+# node (a bare PID 1 ignores them) and zombies are reaped, so the container stops
+# cleanly and `docker run --rm` removes it instead of being orphaned.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends tini \
+  && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@11 --activate
@@ -25,4 +32,5 @@ RUN pnpm --filter @feedthrough/mcp build
 
 # The server speaks the MCP protocol over stdio.
 WORKDIR /app/packages/mcp
+ENTRYPOINT ["tini", "--"]
 CMD ["node", "dist/index.js"]

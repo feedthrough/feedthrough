@@ -35,22 +35,29 @@ function send(msg) {
   child.stdin.write(`${JSON.stringify(msg)}\n`);
 }
 
-function fail(reason) {
+let finished = false;
+
+// Shut the child down gracefully so `docker run` can stop and --rm its container;
+// SIGKILL only as a fallback if it doesn't exit promptly.
+function shutdown(code) {
+  if (finished) return;
+  finished = true;
   clearTimeout(timer);
-  console.error(`✗ smoke test failed: ${reason}`);
-  child.kill("SIGKILL");
-  process.exit(1);
+  child.once("exit", () => process.exit(code));
+  child.kill("SIGTERM");
+  setTimeout(() => child.kill("SIGKILL"), 2000).unref();
 }
 
-function done() {
-  clearTimeout(timer);
-  child.kill("SIGKILL");
+function fail(reason) {
+  if (finished) return;
+  console.error(`✗ smoke test failed: ${reason}`);
+  shutdown(1);
 }
 
 child.on("error", err => fail(`could not launch '${cmd}': ${err.message}`));
 child.on("exit", code => {
-  // We SIGKILL on success, so only treat an early, unprompted exit as failure.
-  if (!responses.has(2)) fail(`server exited early (code ${code})`);
+  // Only an early, unprompted exit (before we finished) counts as a failure.
+  if (!finished && !responses.has(2)) fail(`server exited early (code ${code})`);
 });
 
 child.stdout.on("data", chunk => {
@@ -90,8 +97,7 @@ function check() {
   }
 
   console.log(`✓ MCP server ok: ${init.result.serverInfo.name} v${version}, ${tools.length} tools`);
-  done();
-  process.exit(0);
+  shutdown(0);
 }
 
 send({
