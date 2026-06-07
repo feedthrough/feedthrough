@@ -15,6 +15,7 @@ served at the site root.
 |---|---|---|
 | `list` | Off-by-one — clicking "Item 3" ticks "Item 4" | `click`, `inspect_element`, `edit` |
 | `button` | Label clipped by a too-narrow button; fixed via live `set_style` | `inspect_element`, `set_style`, `edit` |
+| `occlusion` | Dialog buttons unclickable — an invisible text container covers them | `inspect_element`, `set_style`, `edit` |
 
 ## Layout
 

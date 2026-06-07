@@ -12,7 +12,9 @@ const RAW = resolve(here, "raw");
 const BASE = process.env.DEMO_URL ?? "http://localhost:5173";
 const SIZE = { width: 800, height: 450 };
 
-const demos = process.argv.slice(2).length ? process.argv.slice(2) : ["list", "button"];
+const demos = process.argv.slice(2).length
+  ? process.argv.slice(2)
+  : ["list", "button", "occlusion"];
 
 for (const demo of demos) {
   rmSync(resolve(RAW, `${demo}.webm`), { force: true });

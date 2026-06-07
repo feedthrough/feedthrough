@@ -18,6 +18,10 @@ export interface DemoApi {
   clickItem(displayIndex: number, fixed?: boolean): void;
   /** Widen the button (live set_style preview, then the committed fix). */
   setButtonFixed(fixed: boolean): void;
+  /** Outline the invisible message container covering the dialog buttons (occlusion demo). */
+  revealOverlap(): void;
+  /** Fix the occlusion: trim the container off the buttons. */
+  fixOverlap(): void;
 }
 
 // ── Timeline steps (a demo is just an ordered list of these) ─────────────────
@@ -29,4 +33,4 @@ export type Step =
   | { kind: "code"; label: string; lines: CodeLine[] }
   | { kind: "pause"; ms: number };
 
-export type Demo = "list" | "button";
+export type Demo = "list" | "button" | "occlusion";
