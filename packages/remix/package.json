@@ -2,6 +2,11 @@
   "name": "@feedthrough/remix",
   "version": "0.3.0",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/feedthrough/feedthrough.git",
+    "directory": "packages/remix"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
