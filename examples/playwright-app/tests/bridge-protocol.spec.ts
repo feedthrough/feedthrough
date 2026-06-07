@@ -484,7 +484,9 @@ test("response body is truncated when it exceeds the cap", async ({ page }) => {
     r => r.some(req => req.url.includes("/api/big") && typeof req.responseBody === "string"),
     { timeout: 7000 },
   );
-  const body = String(reqs.find(r => r.url.includes("/api/big"))?.responseBody);
+  const req = reqs.find(r => r.url.includes("/api/big"));
+  if (!req) throw new Error("expected /api/big request to be captured");
+  const body = String(req.responseBody);
   expect(body).toContain("truncated");
   expect(body.length).toBeLessThan(11_000); // 10 KB cap + small truncation marker
 });
@@ -506,7 +508,9 @@ test("an SSE / event-stream response is not buffered as a body", async ({ page }
   const reqs = await server.poll<NetEntry[]>("get_network_requests", { filter: "stream" }, r =>
     r.some(req => req.url.includes("/api/stream") && typeof req.responseBody === "string"),
   );
-  const body = String(reqs.find(r => r.url.includes("/api/stream"))?.responseBody);
+  const req = reqs.find(r => r.url.includes("/api/stream"));
+  if (!req) throw new Error("expected /api/stream request to be captured");
+  const body = String(req.responseBody);
   expect(body.toLowerCase()).toContain("event stream");
   expect(body).not.toContain("data: hello"); // body bytes were never read
 });
