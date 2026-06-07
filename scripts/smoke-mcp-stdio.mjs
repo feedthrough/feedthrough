@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Smoke-test an MCP stdio server: launch it, run the initialize + tools/list
-// handshake, and assert it reports a version and a non-empty tool list.
+// handshake, and assert it reports a version and the expected tool count
+// (EXPECTED_TOOL_COUNT).
 //
 // The launch command is passed as argv, so it works against the built package
 // or the Docker image:
