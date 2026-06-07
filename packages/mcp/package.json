@@ -5,7 +5,8 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/feedthrough/feedthrough.git"
+    "url": "git+https://github.com/feedthrough/feedthrough.git",
+    "directory": "packages/mcp"
   },
   "type": "module",
   "main": "./dist/index.js",
