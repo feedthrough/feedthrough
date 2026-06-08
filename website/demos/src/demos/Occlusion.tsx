@@ -39,11 +39,7 @@ export const Occlusion = forwardRef<OcclusionHandle>((_props, ref) => {
     [],
   );
 
-  const messageClass = [
-    "message",
-    fixed ? "" : "message-bug",
-    revealed ? "message-revealed" : "",
-  ]
+  const messageClass = ["message", fixed ? "" : "message-bug", revealed ? "message-revealed" : ""]
     .filter(Boolean)
     .join(" ");
 
