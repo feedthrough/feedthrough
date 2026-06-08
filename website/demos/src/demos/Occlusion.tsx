@@ -28,20 +28,18 @@ export const Occlusion = forwardRef<OcclusionHandle>((_props, ref) => {
         setRevealed(true);
       },
       fix() {
+        // Keep the outline on the container while it retracts off the buttons,
+        // so the viewer sees exactly what got fixed; fade it out after a beat.
         setFixed(true);
-        setRevealed(false);
         setCleared(true);
         setTimeout(() => setCleared(false), 900);
+        setTimeout(() => setRevealed(false), 1400);
       },
     }),
     [],
   );
 
-  const messageClass = [
-    "message",
-    fixed ? "" : "message-bug",
-    revealed && !fixed ? "message-revealed" : "",
-  ]
+  const messageClass = ["message", fixed ? "" : "message-bug", revealed ? "message-revealed" : ""]
     .filter(Boolean)
     .join(" ");
 
