@@ -319,6 +319,10 @@ body {
   font-size: 0.92rem;
   line-height: 1.5;
   border-radius: 8px;
+  /* So the box visibly retracts off the buttons when the fix lands. */
+  transition:
+    padding 0.4s ease,
+    margin 0.4s ease;
 }
 /* The bug: the text container is padded far past its text, then pulled back up
    with a negative margin. Its invisible box sits on top of the buttons (it's a
