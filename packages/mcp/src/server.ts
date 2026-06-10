@@ -81,7 +81,13 @@ not the only way, so improvise: any observe -> interact -> re-observe loop is fa
   expand an accordion, or unhide an element so you can inspect what it renders, without driving
   the exact trigger sequence
 - \`hover\` mounts hover-only UI (tooltips, popovers, submenus) that isn't in the DOM otherwise;
-  hover the trigger, then \`query_dom\`/\`get_html\`/\`inspect_element\` to read what appeared
+  hover the trigger, then \`query_dom\`/\`get_html\`/\`inspect_element\` to read what appeared. It fires
+  JS hover handlers but not the CSS \`:hover\` pseudo-class, so something shown purely via \`:hover\` in
+  CSS won't reveal this way
+- There is no navigation tool, by design: the bridge lives inside the page, so it drives the app
+  you're on rather than the browser. To reach another view, \`click\` a link or use the app's own
+  navigation; for cross-page or cross-origin automation, a browser driver like Playwright is the
+  right tool (and can inject this same bridge via \`@feedthrough/playwright\`)
 - When a click "does nothing", suspect layout before logic: \`inspect_element\`'s rect shows
   whether the target is off-screen, zero-size, or sitting under another element (compare
   overlapping rects and z-index) before you go hunting for a handler bug
@@ -99,8 +105,10 @@ export async function startServer(port = 8765): Promise<void> {
     "get_instructions",
     {
       description:
-        "Returns a usage guide for Feedthrough: recommended workflow, tool-ordering tips, and selector advice. " +
-        "Call this at the start of a debugging session if you are unfamiliar with Feedthrough or want a quick refresher.",
+        "Returns the Feedthrough usage guide as a Markdown text document, with sections for the " +
+        "recommended workflow, tool-ordering tips, and selector advice. Read-only and takes no " +
+        "arguments; it does not touch the page or require a connected browser. Call it at the start " +
+        "of a debugging session if you are unfamiliar with Feedthrough or want a quick refresher.",
     },
     () => Promise.resolve(ok(INSTRUCTIONS)),
   );
@@ -134,19 +142,26 @@ export async function startServer(port = 8765): Promise<void> {
         "even though the app never logged them. When the app is noisy with framework or deprecation " +
         "warnings, pass levels: ['error'] (or ['error', 'warn']) so the real errors aren't buried, " +
         "and use 'match' to narrow by content. Pass 'since' (a ms timestamp from an earlier entry's " +
-        "'ts', or Date.now() before an action) to see only what happened after that point. Always " +
-        "check this early — app errors and debug output often identify the root cause immediately.",
+        "'ts', or Date.now() before an action) to see only what happened after that point. Read-only: " +
+        "it returns a passively captured buffer and neither clears the console nor changes the page. " +
+        "Always check this early — app errors and debug output often identify the root cause immediately.",
       inputSchema: {
         limit: z
           .number()
           .int()
           .positive()
           .optional()
-          .describe("Return only the N most-recent entries"),
+          .describe(
+            "Cap the result to the N most-recent entries, e.g. 50. Omit to return everything " +
+              "captured since the bridge connected.",
+          ),
         levels: z
           .array(z.enum(["log", "warn", "error", "info", "debug"]))
           .optional()
-          .describe("Restrict to these levels — e.g. ['error'] to skip noisy warn/info/debug"),
+          .describe(
+            "Restrict to these levels, e.g. ['error'] to skip noisy warn/info/debug, or " +
+              "['error', 'warn'] for both. Omit for all levels.",
+          ),
         match: z
           .string()
           .optional()
@@ -177,7 +192,8 @@ export async function startServer(port = 8765): Promise<void> {
         "(bodies capped at 10 KB each — anything longer is truncated with a marker; binary responses " +
         "are summarised). Use this to find failed requests (4xx/5xx), wrong URLs, slow calls, or to " +
         "inspect what the app actually sent or received. Use 'filter' to narrow by URL/method and " +
-        "'since' (a ms timestamp) to see only requests that fired after an action.",
+        "'since' (a ms timestamp) to see only requests that fired after an action. Read-only: it " +
+        "returns a passively captured log and does not issue or modify any requests.",
       inputSchema: {
         filter: z
           .string()
@@ -204,8 +220,17 @@ export async function startServer(port = 8765): Promise<void> {
       description:
         "Query the page with a CSS selector and return a summary of every matching element " +
         "(tag, id, classes, text content). Good for counting list items, checking what's rendered, " +
-        "or finding the right selector before calling inspect_element or click.",
-      inputSchema: { selector: z.string().describe("CSS selector") },
+        "or finding the right selector before calling inspect_element or click. Read-only: it only " +
+        "reads the DOM and never changes the page. Returns an empty list (not an error) when nothing " +
+        "matches, so it is also a safe existence check.",
+      inputSchema: {
+        selector: z
+          .string()
+          .describe(
+            "A CSS selector matched against the whole document, e.g. '.todo-item', '#search-input', " +
+              "or 'nav a'. Returns every match, so it also works as a count or existence check.",
+          ),
+      },
     },
     ({ selector }) => run(bridge, "query_dom", { selector }),
   );
@@ -230,15 +255,24 @@ export async function startServer(port = 8765): Promise<void> {
         "and live form state where applicable (an input's current value, checked, disabled, etc.). " +
         "Pass 'properties' to additionally read any specific computed CSS properties by name — they " +
         "come back under 'requested'. Use this to understand why an element looks wrong or isn't " +
-        "behaving as expected. Note: addEventListener-registered event handlers cannot be read from " +
-        "the page; only inline on* handler attributes appear (in 'attributes').",
+        "behaving as expected. Read-only: it only reads element state and never changes the page, and " +
+        "it returns an error if the selector matches nothing. Note: addEventListener-registered event " +
+        "handlers cannot be read from the page; only inline on* handler attributes appear (in " +
+        "'attributes').",
       inputSchema: {
-        selector: z.string().describe("CSS selector — should match exactly one element"),
+        selector: z
+          .string()
+          .describe(
+            "A CSS selector that should resolve to one element, e.g. '#submit-btn' or " +
+              "'main .card:first-child'. If several match, the first in document order is inspected.",
+          ),
         properties: z
           .array(z.string())
           .optional()
           .describe(
-            "Extra computed CSS properties to read by name, e.g. ['transform', 'z-index', 'margin-top']",
+            "Extra computed CSS properties to read by name (kebab-case), e.g. " +
+              "['transform', 'z-index', 'margin-top']. They come back under a 'requested' object, " +
+              "in addition to the curated default set.",
           ),
       },
     },
@@ -253,10 +287,24 @@ export async function startServer(port = 8765): Promise<void> {
     "click",
     {
       description:
-        "Click an element. Triggers the same event sequence as a real user click. " +
-        "Use IDs when possible (#submit-btn) for reliable targeting. " +
-        "Returns the tag and id of the clicked element.",
-      inputSchema: { selector: z.string().describe("CSS selector for the element to click") },
+        "Click an element by calling its native click(), which fires a click event and runs the " +
+        "default activation: following a link, toggling a checkbox or radio, submitting a form. " +
+        "Prefer an id selector (#submit-btn) for reliable targeting. Note it does NOT synthesize the " +
+        "preceding pointer/mouse sequence (pointerdown / mousedown / mouseup) or move focus, so a " +
+        "handler wired specifically to those events rather than to click won't fire; for keyboard-" +
+        "driven activation use press_key instead. Behavior: if the selector matches nothing the call " +
+        "returns an error; it does not scroll the element into view, and it does not wait for any " +
+        "resulting navigation, network, or re-render to settle, returning as soon as the click is " +
+        "dispatched. Observe the effect with a follow-up get_console_logs / get_network_requests / " +
+        "query_dom. Returns the tag and id of the clicked element.",
+      inputSchema: {
+        selector: z
+          .string()
+          .describe(
+            "A CSS selector for the element to click, e.g. '#submit-btn' or 'button[type=submit]'. " +
+              "If several match, the first in document order is clicked.",
+          ),
+      },
     },
     ({ selector }) => run(bridge, "click", { selector }),
   );
@@ -265,12 +313,27 @@ export async function startServer(port = 8765): Promise<void> {
     "fill",
     {
       description:
-        "Type a value into an input, textarea, or select element. Fires input and change events, " +
-        "so it works correctly with React, Vue, and other frameworks that use controlled inputs. " +
-        "For React inputs, prefer the element's id selector (#search-input).",
+        "Set the value of an input, textarea, or select element. Focuses the element, assigns the " +
+        "value through the element's native value setter (so React/Vue controlled inputs register " +
+        "the change), then fires bubbling input and change events. The value is set in one shot, not " +
+        "typed character by character, so per-keystroke handlers (keydown / keypress / keyup / " +
+        "beforeinput) do NOT fire; to send Enter to submit or trigger a key shortcut, follow with " +
+        "press_key. Prefer an id selector (#search-input). If the selector matches nothing the call " +
+        "returns an error; it returns as soon as the events are dispatched and does not wait for " +
+        "downstream validation or re-renders. Returns the tag and the value that was set.",
       inputSchema: {
-        selector: z.string().describe("CSS selector for the input element"),
-        value: z.string().describe("Value to type"),
+        selector: z
+          .string()
+          .describe(
+            "A CSS selector for the input, textarea, or select to fill, e.g. '#email' or " +
+              "'input[name=q]'.",
+          ),
+        value: z
+          .string()
+          .describe(
+            "The full value to set. It replaces the field's current contents (it is not appended); " +
+              "for a <select>, pass the target option's value attribute.",
+          ),
       },
     },
     ({ selector, value }) => run(bridge, "fill", { selector, value }),
@@ -280,9 +343,25 @@ export async function startServer(port = 8765): Promise<void> {
     "hover",
     {
       description:
-        "Hover over an element, firing mouseover and mouseenter events. " +
-        "Useful for triggering tooltips, dropdown menus, or hover states.",
-      inputSchema: { selector: z.string().describe("CSS selector") },
+        "Hover over an element by dispatching synthetic, bubbling mouseover and mouseenter events " +
+        "from inside the page. This triggers JavaScript hover handlers (onMouseEnter / onMouseOver), " +
+        "so hover-only UI that mounts on hover (tooltips, popovers, dropdown and submenus) appears in " +
+        "the DOM; follow up with query_dom, get_html, or inspect_element to read what was revealed. " +
+        "Three limits to know: it does NOT activate the CSS :hover pseudo-class (that is driven by " +
+        "the real cursor, not synthetic events), so styles or content shown purely via :hover in CSS " +
+        "will not change; no mouseout / mouseleave is sent, so the hovered state stays until the app " +
+        "tears it down or you interact elsewhere; and the events are dispatched whether or not the " +
+        "element is visible or in the viewport (it is not scrolled into view), so a successful call " +
+        "does not by itself confirm anything rendered. If the selector matches nothing the call " +
+        "returns an error. Returns the tag of the hovered element.",
+      inputSchema: {
+        selector: z
+          .string()
+          .describe(
+            "A CSS selector for the element to hover, e.g. '#menu-trigger' or '.tooltip-anchor'. " +
+              "Target the element that owns the hover handler (often the trigger, not the popup).",
+          ),
+      },
     },
     ({ selector }) => run(bridge, "hover", { selector }),
   );
@@ -295,12 +374,24 @@ export async function startServer(port = 8765): Promise<void> {
         "Escape to close a modal, Tab to move focus, or ArrowUp/ArrowDown in a list. Use named keys " +
         "(Enter, Escape, Tab, Backspace, Delete, ArrowUp/Down/Left/Right) or a single character. " +
         "Note: this fires key handlers but does NOT insert text into inputs — use 'fill' to set an " +
-        "input's value, then press_key for the submit/shortcut.",
+        "input's value, then press_key for the submit/shortcut. If the selector matches nothing the " +
+        "call returns an error; it dispatches the key events and returns without waiting for any " +
+        "resulting navigation or re-render.",
       inputSchema: {
-        selector: z.string().describe("CSS selector for the element to receive the key"),
+        selector: z
+          .string()
+          .describe(
+            "A CSS selector for the element that receives the key, e.g. '#search-input'. Target a " +
+              "focused or focusable element: Enter on a focused input submits its form, Escape on an " +
+              "open dialog closes it, Tab moves focus to the next element.",
+          ),
         key: z
           .string()
-          .describe("A key name (Enter, Escape, Tab, ArrowDown, …) or a single character"),
+          .describe(
+            "A named key or a single character. Named keys: Enter, Escape, Tab, Backspace, Delete, " +
+              "ArrowUp, ArrowDown, ArrowLeft, ArrowRight (case-sensitive, as in the DOM KeyboardEvent " +
+              "'key' value). Any other single character (e.g. 'a', '/') is sent as that character.",
+          ),
       },
     },
     ({ selector, key }) => run(bridge, "press_key", { selector, key }),
@@ -311,8 +402,17 @@ export async function startServer(port = 8765): Promise<void> {
     {
       description:
         "Return the outerHTML of an element (capped at 50 KB). Use this when the summarised query_dom " +
-        "output isn't enough and you need to see the actual markup/structure of a region.",
-      inputSchema: { selector: z.string().describe("CSS selector — should match one element") },
+        "output isn't enough and you need to see the actual markup/structure of a region. Read-only: " +
+        "it only reads the DOM and makes no changes, and it returns an error if the selector matches " +
+        "nothing.",
+      inputSchema: {
+        selector: z
+          .string()
+          .describe(
+            "A CSS selector for the region to dump, e.g. '#app' or '.modal'. If several match, the " +
+              "first in document order is used. Scope it tightly: the outerHTML is capped at 50 KB.",
+          ),
+      },
     },
     ({ selector }) => run(bridge, "get_html", { selector }),
   );
@@ -322,7 +422,8 @@ export async function startServer(port = 8765): Promise<void> {
     {
       description:
         "Return basic page context: current URL, document title, readyState, viewport size, scroll " +
-        "position, and user agent. Useful to orient at the start of a session or confirm navigation.",
+        "position, and user agent. Read-only and non-destructive: it only reads page state and makes " +
+        "no changes. Useful to orient at the start of a session or confirm a navigation happened.",
     },
     () => run(bridge, "get_page_info"),
   );
@@ -338,11 +439,18 @@ export async function startServer(port = 8765): Promise<void> {
         "stylesheet and usually survive re-renders. The result includes a 'note' to relay; reset with " +
         "reset_overrides.",
       inputSchema: {
-        selector: z.string().describe("CSS selector — should match one element"),
+        selector: z
+          .string()
+          .describe(
+            "A CSS selector for the element to restyle, e.g. '#banner' or '.cta'. If several match, " +
+              "the first in document order is used.",
+          ),
         properties: z
           .record(z.string(), z.string())
           .describe(
-            "CSS property → value map, e.g. { 'font-size': '13px', 'white-space': 'nowrap' }",
+            "A map of CSS property to value, applied as inline styles. Property names are kebab-case " +
+              "and values are full CSS strings, e.g. { 'font-size': '13px', 'white-space': 'nowrap' }. " +
+              "Pass an empty string as the value to clear a single inline property.",
           ),
       },
     },
@@ -359,9 +467,26 @@ export async function startServer(port = 8765): Promise<void> {
         "value, checked, disabled, …) the result includes a 'frameworkWarning' that it may be " +
         "reverted on the next render — relay it. Reset with reset_overrides.",
       inputSchema: {
-        selector: z.string().describe("CSS selector — should match one element"),
-        name: z.string().describe("Attribute name"),
-        value: z.string().nullable().describe("New value, or null to remove the attribute"),
+        selector: z
+          .string()
+          .describe(
+            "A CSS selector for the target element, e.g. '#menu' or 'button.cta'. If several match, " +
+              "the first in document order is used.",
+          ),
+        name: z
+          .string()
+          .describe(
+            "The attribute name to set or remove, e.g. 'disabled', 'class', 'aria-expanded', " +
+              "'hidden', or a 'data-*' attribute.",
+          ),
+        value: z
+          .string()
+          .nullable()
+          .describe(
+            "The new value as a string, or null to remove the attribute entirely. For boolean " +
+              "attributes like 'disabled' or 'hidden', any non-null string (even '') sets them; use " +
+              "null to unset.",
+          ),
       },
     },
     ({ selector, name, value }) => run(bridge, "set_attribute", { selector, name, value }),
@@ -376,8 +501,18 @@ export async function startServer(port = 8765): Promise<void> {
         "result includes a 'frameworkWarning' that React/Vue/etc. will likely overwrite it on the next " +
         "render — relay that, and persist real changes in the source. Reset with reset_overrides.",
       inputSchema: {
-        selector: z.string().describe("CSS selector — should match one element"),
-        text: z.string().describe("New text content"),
+        selector: z
+          .string()
+          .describe(
+            "A CSS selector for the element to relabel, e.g. '#title' or '.cta-label'. If several " +
+              "match, the first in document order is used.",
+          ),
+        text: z
+          .string()
+          .describe(
+            "The replacement text, inserted as plain text (not parsed as HTML). Replaces all existing " +
+              "child content of the element.",
+          ),
       },
     },
     ({ selector, text }) => run(bridge, "set_text", { selector, text }),
