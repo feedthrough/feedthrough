@@ -54,6 +54,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @feedthrough/mcp test
       - run: pnpm --filter './packages/*' build
+      - name: Smoke-test the MCP stdio handshake
+        run: node scripts/smoke-mcp-stdio.mjs node packages/mcp/dist/index.js
       - run: pnpm --filter @feedthrough/playwright-app-example exec playwright install --with-deps chromium
       - run: pnpm --filter @feedthrough/playwright-app-example test
 

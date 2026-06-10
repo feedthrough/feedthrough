@@ -3,10 +3,9 @@
 // handshake, and assert it reports a version and the expected tool count
 // (EXPECTED_TOOL_COUNT).
 //
-// The launch command is passed as argv, so it works against the built package
-// or the Docker image:
+// The launch command is passed as argv, so it works against any way of starting
+// the server, e.g. the built package:
 //   node scripts/smoke-mcp-stdio.mjs node packages/mcp/dist/index.js
-//   node scripts/smoke-mcp-stdio.mjs docker run -i --rm feedthrough-mcp:ci
 //
 // Exits 0 on success, 1 on failure. Resolves as soon as both responses arrive
 // (no fixed sleep), with a hard timeout as a backstop.
