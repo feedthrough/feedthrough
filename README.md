@@ -209,9 +209,9 @@ Then ask your AI agent:
 | `get_network_requests(filter?, since?)` | Captured fetch + XHR — URL, method, status, duration, headers, request/response bodies (10 KB cap); narrow by `filter` or `since` |
 | `get_page_info()` | URL, title, readyState, viewport size, scroll position, user agent |
 | `connection_status()` | List connected tabs and which one is currently active |
-| `click(selector)` | Click an element |
-| `fill(selector, value)` | Type into an input field |
-| `hover(selector)` | Trigger mouseover/mouseenter |
+| `click(selector)` | Click an element via native `click()` (fires click + default activation, not the pointer sequence) |
+| `fill(selector, value)` | Set an input/textarea/select value (fires input + change, not keystrokes) |
+| `hover(selector)` | Fire mouseover/mouseenter to mount hover UI (JS handlers, not CSS `:hover`) |
 | `press_key(selector, key)` | Dispatch a key press — Enter, Escape, Tab, arrow keys, or a character |
 | `set_style(selector, properties)` | Preview a visual fix — set inline CSS live (not saved to source) |
 | `set_attribute(selector, name, value)` | Preview an attribute change — toggle disabled, swap a class, set aria-* (`null` removes) |

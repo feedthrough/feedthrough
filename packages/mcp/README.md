@@ -54,9 +54,9 @@ Add to `.claude/settings.json` or `~/.claude.json`:
 | Tool | Input | Description |
 |---|---|---|
 | `get_instructions` | — | Usage guide: recommended workflow, tool ordering, selector tips |
-| `click` | `selector: string` | Click a DOM element |
-| `fill` | `selector: string`, `value: string` | Type into an input |
-| `hover` | `selector: string` | Fire mouseover/mouseenter |
+| `click` | `selector: string` | Click via native `click()` (fires click + default activation, not the pointer sequence) |
+| `fill` | `selector: string`, `value: string` | Set an input/textarea/select value (fires input + change, not keystrokes) |
+| `hover` | `selector: string` | Fire mouseover/mouseenter to mount hover UI (JS handlers, not CSS `:hover`) |
 | `press_key` | `selector: string`, `key: string` | Dispatch a key press (Enter, Escape, Tab, arrows, or a character) |
 | `inspect_element` | `selector: string`, `properties?: string[]` | Full element details — tag, attributes, bounding rect + inViewport, ancestor `path`, curated computed styles, overflow info (clipped/overflowing content), `clipped`-by-ancestor info, effective visibility (`visible` + `hiddenReason`, accounting for ancestors), occlusion (`hittable` + `occludedBy`), accessibility (`a11y`: role, name, states), `pseudo` ::before/::after content, live form state; `properties` reads extra CSS props by name |
 | `query_dom` | `selector: string` | All matching elements, summarised |
