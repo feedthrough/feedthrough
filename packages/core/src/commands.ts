@@ -1,13 +1,14 @@
 import type { ConsoleInterceptor } from "./interceptors/console";
 import type { NetworkInterceptor } from "./interceptors/network";
 import type { Transport } from "./transport";
-import type { Command, ResultMessage } from "./types";
+import type { Command, ResultMessage, ServerInfo } from "./types";
 
 export class CommandHandler {
   constructor(
     private readonly transport: Transport,
     private readonly console: ConsoleInterceptor,
     private readonly network: NetworkInterceptor,
+    private readonly getServer: () => ServerInfo | null,
   ) {}
 
   handle(msg: unknown): void {
@@ -58,7 +59,7 @@ export class CommandHandler {
       case "get_html":
         return getHtml(cmd.selector);
       case "get_page_info":
-        return getPageInfo();
+        return getPageInfo(this.getServer());
       case "set_style":
         return setStyle(cmd.selector, cmd.properties);
       case "set_attribute":
@@ -728,7 +729,7 @@ function getHtml(selector: string) {
   };
 }
 
-function getPageInfo() {
+function getPageInfo(server: ServerInfo | null) {
   return {
     url: window.location.href,
     title: document.title,
@@ -736,6 +737,10 @@ function getPageInfo() {
     viewport: { width: window.innerWidth, height: window.innerHeight },
     scroll: { x: window.scrollX, y: window.scrollY },
     userAgent: navigator.userAgent,
+    // Which bridge this page thinks it is on. Compare with the name in
+    // connection_status: a mismatch means the page is paired with a different
+    // agent session's server. Null against a pre-0.4 server.
+    server,
   };
 }
 

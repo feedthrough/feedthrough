@@ -158,8 +158,8 @@ export const tools: Tool[] = [
   {
     id: "connection-status",
     name: "connection_status()",
-    short: "Check whether a browser is currently connected",
-    long: "Checks whether a browser with the Feedthrough bridge is currently connected. Returns the connected flag and a list of open tabs (id, url, which is the active one). Call this first — every tool except get_instructions requires a connected browser.",
+    short: "Check whether a browser is connected, and which bridge this is",
+    long: "Checks whether a browser with the Feedthrough bridge is currently connected. Returns the connected flag, a list of open tabs (id, url, which is the active one), and a server block naming this bridge: its name, version, and the port it actually bound. That port matters when several agent sessions run on one machine — if another session already held the default 8765, this server moved up, and the page only finds it when the dev server is started with FEEDTHROUGH_PORT set to the reported port. Call this first — every tool except get_instructions requires a connected browser.",
   },
   {
     id: "get-html",
@@ -177,8 +177,8 @@ export const tools: Tool[] = [
   {
     id: "get-page-info",
     name: "get_page_info()",
-    short: "URL, title, readyState, viewport, scroll position",
-    long: "Returns basic page context: current URL, document title, readyState, viewport size, scroll position, and user agent. Read-only and non-destructive: it only reads page state and makes no changes. Useful to orient at the start of a session or to confirm a navigation happened.",
+    short: "URL, title, readyState, viewport, scroll position, connected server",
+    long: 'Returns basic page context: current URL, document title, readyState, viewport size, scroll position, user agent, and a server block naming which Feedthrough bridge this page is connected to. Read-only and non-destructive: it only reads page state and makes no changes. Useful to orient at the start of a session or to confirm a navigation happened. With several agent sessions on one machine, comparing server.name against connection_status turns "am I driving the right app?" into a single call.',
   },
   {
     id: "set-style",

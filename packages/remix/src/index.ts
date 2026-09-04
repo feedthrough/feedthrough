@@ -1,10 +1,15 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { BridgeOptions } from "@feedthrough/core";
+import { resolveBridgeOptions } from "@feedthrough/core/node";
 import type { Plugin } from "vite";
 import { bridgeBundle } from "./generated/bundle.js";
 
 export function feedthrough(options: BridgeOptions = {}): Plugin {
-  const script = `<script>window.__feedthroughOptions=${JSON.stringify(options)};${bridgeBundle}</script>`;
+  // Resolved in Node at config-load time and inlined into the page, so
+  // FEEDTHROUGH_PORT in the dev server's environment points the bridge at a
+  // server that had to move off the default port.
+  const resolved = resolveBridgeOptions(options);
+  const script = `<script>window.__feedthroughOptions=${JSON.stringify(resolved)};${bridgeBundle}</script>`;
 
   return {
     name: "feedthrough-remix",

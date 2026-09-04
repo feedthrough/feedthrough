@@ -51,7 +51,8 @@ Node ≥ 22 required. Package manager is pnpm (v11+).
 
 - Browser packages (`core`): `module: ESNext`, `moduleResolution: Bundler`, `lib: [DOM, ES2020]`
 - Node packages (`mcp`, `cypress`, `vite`, `webpack`): `module: NodeNext`,
-  `moduleResolution: NodeNext` — relative imports need `.js` extensions
+  `moduleResolution: NodeNext` — relative imports need `.js` extensions, except `mcp`, which
+  writes `.ts` and rewrites on emit (see its package details below)
 - All packages extend `tsconfig.base.json` at the repo root
 
 ## Build quirks
@@ -78,21 +79,37 @@ workspace dependency ordering.
   groupEnd, clear); rich methods carry a `method` field, trace/assert add `stack`
 - `src/interceptors/network.ts` — wraps `window.fetch` and `XMLHttpRequest`
 - `src/commands.ts` — dispatches incoming commands: click, fill, hover, inspect, query_dom, etc.
-- `src/bridge.ts` — `FeedthroughBridge` class, wires everything together
+- `src/bridge.ts` — `FeedthroughBridge` class, wires everything together; handles the server's
+  `welcome` and keeps it on `bridge.server`
 - `src/browser.ts` — auto-init entry point for the IIFE bundle; reads config from
   `window.__feedthroughOptions`
+- `src/node.ts` — **Node-only**, published as `@feedthrough/core/node`. `resolveBridgeOptions()`
+  fills `serverUrl` from `FEEDTHROUGH_URL` / `FEEDTHROUGH_PORT`. Not in the browser bundle;
+  reads env via `globalThis.process` so core needs no `@types/node`.
 - `dist/feedthrough.iife.js` — self-contained 9 KB bundle for direct page injection
 
-Public API: `init(options?)` (convenience) and `FeedthroughBridge` class.
+Public API: `init(options?)` (convenience) and `FeedthroughBridge` class. Both `init()` and the
+IIFE entry set `window.__feedthrough`. The package has an `exports` map (`.` and `./node`), so
+deep imports into `dist/` no longer resolve — the bundle-embedding scripts read it off disk by
+path, not through Node resolution.
 
 ### @feedthrough/mcp
 
 - `src/bridge-client.ts` — WebSocket server on `:8765`, manages browser connection,
   maps command IDs to pending promises with 10 s timeouts
+- `src/instance-name.ts` — bundled word lists; each server process names itself at startup
 - `src/server.ts` — `McpServer` with sixteen tools registered via `registerTool` (not the
   deprecated `tool()`). Uses MCP SDK 1.29.0 / Zod v4.
 - All logging goes to `process.stderr` — stdout is reserved for the MCP stdio protocol
-- Port override: `FEEDTHROUGH_PORT` env var
+- Port override: `FEEDTHROUGH_PORT` env var. On EADDRINUSE the server **steps up** to the next
+  free port (up to 10 attempts) rather than going inert, because the usual occupant is another
+  agent session's server. It reports the port it actually bound via `connection_status`; the
+  page is pointed at it by starting the dev server with `FEEDTHROUGH_PORT` set (every build-tool
+  adapter resolves that in Node at config-load time). Only EADDRINUSE retries — EACCES and the
+  rest still fail hard.
+- Relative imports inside `src/` use the real `.ts` extension, not `.js`: `node --test` runs the
+  unit tests straight off `src/` before the build, and tsc rewrites the extensions on emit
+  (`rewriteRelativeImportExtensions`).
 
 ### @feedthrough/cypress
 
@@ -168,6 +185,10 @@ Where other things live: per-adapter install/usage is in each `packages/*/README
 landing-page copy is in `website/src/components/*.astro`; long-term plans and decisions are in
 the session auto-memory, not the repo.
 
+Multi-session behaviour is documented for users in the root `README.md`
+("Running several sessions at once") and `packages/mcp/README.md`; when the port or naming
+behaviour changes, update both.
+
 WebSocket server binds to `127.0.0.1` only and validates the `Origin` header — loopback origins
 plus any host matching an allowed suffix (default `.test`; override via
 `FEEDTHROUGH_ALLOWED_HOST_SUFFIXES`) are accepted, everything else is rejected. v1 is explicitly
@@ -210,6 +231,9 @@ bump.
 - ✅ Session 8 — CI (GitHub Actions): build/typecheck job + Playwright integration tests (bridge
   protocol, console/network/DOM commands) + website build job. Publish workflow (OIDC trusted
   publishing) and pre-release hardening also landed.
+- ✅ Session 9 — multi-session support (0.4.0): server steps over a busy port and reports the real
+  one, adapters default `serverUrl` from `FEEDTHROUGH_PORT`/`FEEDTHROUGH_URL`, and each server
+  names itself in a `welcome` surfaced by both `connection_status` and `get_page_info`.
 
 ## Do later
 

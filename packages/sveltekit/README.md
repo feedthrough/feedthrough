@@ -31,8 +31,21 @@ If you have other handles, include them in the `sequence` call. Feedthrough is a
 
 ```typescript
 import { setupFeedthrough } from "@feedthrough/sveltekit";
-export const handle = sequence(setupFeedthrough({ port: 8765 }));
+export const handle = sequence(setupFeedthrough({ serverUrl: "ws://localhost:8765" }));
 ```
+
+### Choosing the port
+
+`serverUrl` defaults to `ws://localhost:8765`, but the plugin resolves it in Node when you
+don't pass one, so the environment can override it:
+
+```bash
+FEEDTHROUGH_PORT=8766 npm run dev     # or FEEDTHROUGH_URL=ws://localhost:8766
+```
+
+That matters when several AI agent sessions run on one machine: only one MCP server gets 8765
+and the rest step up, so each session starts its dev server with the port `connection_status()`
+reported. An explicit `serverUrl` always wins over the environment.
 
 ## Running with the MCP server
 

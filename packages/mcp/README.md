@@ -17,6 +17,28 @@ node packages/mcp/dist/index.js
 
 Set `FEEDTHROUGH_PORT` to override the default WebSocket port (8765).
 
+### Running more than one session at a time
+
+If the port is already taken — usually by another agent session's Feedthrough server — this
+server steps up to the next free one (8766, 8767, …) instead of refusing to start. It reports
+the port it actually got in `connection_status`, and logs it to stderr on startup.
+
+The page still defaults to 8765, so point it at the right server by starting the app's dev
+server with that port in the environment:
+
+```bash
+FEEDTHROUGH_PORT=8766 npm run dev
+```
+
+Every build-tool adapter (vite, webpack, nextjs, nuxt, sveltekit, remix) reads it at
+config-load time and bakes the resulting URL into the injected bridge, so no file edits are
+needed. See the root README's "Running several sessions at once" for the full picture,
+including how to pin a port per project.
+
+Each server also picks a readable name at startup (`quiet-olive-heron`), reported by both
+`connection_status` and the page's `get_page_info`. Two names that disagree mean the tab is
+paired with a different session's server.
+
 ### Allowed origins
 
 The bridge WebSocket only accepts connections whose page origin is loopback
@@ -63,8 +85,8 @@ Add to `.claude/settings.json` or `~/.claude.json`:
 | `get_console_logs` | `limit?`, `levels?`, `match?`, `since?` | Console output across every method, plus uncaught errors & promise rejections; filter by levels/match/since |
 | `get_network_requests` | `filter?`, `since?` | Fetch + XHR with headers and request/response bodies (10 KB cap); narrow by filter or since |
 | `get_html` | `selector: string` | Raw outerHTML of a region (capped at 50 KB) |
-| `get_page_info` | — | URL, title, readyState, viewport, scroll, user agent |
-| `connection_status` | — | Whether a browser is currently connected |
+| `get_page_info` | — | URL, title, readyState, viewport, scroll, user agent, and the bridge this page is connected to |
+| `connection_status` | — | Whether a browser is connected, plus this server's name, version, and bound port |
 | `set_style` | `selector: string`, `properties: Record<string,string>` | Preview a visual fix — set inline CSS live (not saved to source) |
 | `set_attribute` | `selector: string`, `name: string`, `value: string \| null` | Preview an attribute change (toggle disabled, swap class, aria-*); `null` removes |
 | `set_text` | `selector: string`, `text: string` | Preview wording/label changes — replace an element's text |
@@ -81,6 +103,7 @@ AI agent  ──stdio──  @feedthrough/mcp  ──ws://localhost:8765──  
 ```
 
 Multiple browser tabs can be connected at once; commands are routed to the most recently active
-tab, and `connection_status` lists them all. Commands are sent with unique IDs and matched to
+tab, and `connection_status` lists them all. The server answers each connection with a `welcome`
+naming itself, so both ends can say which bridge they are on; bridges older than 0.4 ignore it. Commands are sent with unique IDs and matched to
 responses with a 10-second timeout. All debug output goes to stderr so stdout stays clean for
 the MCP protocol.

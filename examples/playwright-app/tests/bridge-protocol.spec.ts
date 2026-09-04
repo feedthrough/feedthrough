@@ -4,9 +4,9 @@
  * Unlike demo.spec.ts (which drives the page with native Playwright APIs), this
  * spec stands up a WebSocket server that plays the role of @feedthrough/mcp's
  * bridge-client, injects the real @feedthrough/core bridge pointing at it, and
- * exercises the wire protocol end to end: transport connect/hello, console and
- * network capture, the failed-fetch path, and every command (query_dom, click,
- * fill, inspect, get_console_logs, get_network_requests).
+ * exercises the wire protocol end to end: transport connect/hello, the server's
+ * `welcome` reply, console and network capture, the failed-fetch path, and every
+ * command (query_dom, click, fill, inspect, get_console_logs, get_network_requests).
  *
  * The bridge does NOT stream console/network events — an agent pulls them on
  * demand — so the tests poll the get_* tools (via `poll`) until the expected
@@ -43,11 +43,19 @@ class TestBridgeServer {
   private connectionWaiters: Array<() => void> = [];
   private cmdId = 0;
 
+  /**
+   * What to send as the `welcome` on the next connection, or null to send
+   * nothing. Null is the default so most tests exercise the pre-0.4 server case:
+   * a bridge that never hears a welcome must still work, just without a name.
+   */
+  welcome: Record<string, unknown> | null = null;
+
   constructor(port: number) {
     this.wss = new WebSocketServer({ port });
     this.wss.on("connection", ws => {
       this.socket = ws;
       this.received = []; // fresh page → fresh capture buffer
+      if (this.welcome) ws.send(JSON.stringify({ type: "welcome", ...this.welcome }));
       const waiters = this.connectionWaiters;
       this.connectionWaiters = [];
       waiters.forEach(r => {
@@ -139,6 +147,7 @@ test.afterAll(async () => {
 
 // Establish a fresh bridge connection for each test and wait for the hello.
 test.beforeEach(async ({ page }) => {
+  server.welcome = null; // opt in per test; default is a server that sends none
   const connected = server.nextConnection();
   await page.goto("/");
   await connected;
@@ -753,14 +762,56 @@ test("get_html returns the outerHTML of a region", async () => {
   expect(res.truncated).toBe(false);
 });
 
+type PageInfo = {
+  url: string;
+  title: string;
+  readyState: string;
+  viewport: { width: number; height: number };
+  server: { name: string; port: number; version: string } | null;
+};
+
 test("get_page_info returns page context", async () => {
-  const info = await server.command<{
-    url: string;
-    title: string;
-    readyState: string;
-    viewport: { width: number; height: number };
-  }>("get_page_info");
+  const info = await server.command<PageInfo>("get_page_info");
   expect(info.url).toContain("localhost:4173");
   expect(typeof info.title).toBe("string");
   expect(info.viewport.width).toBeGreaterThan(0);
+  // This server sent no welcome, which is what a pre-0.4 MCP server looks like:
+  // the bridge must still answer, reporting that it does not know who it is on.
+  expect(info.server).toBeNull();
+});
+
+test("a welcome names the server, and get_page_info reports it back", async ({ page }) => {
+  // Reconnect with a welcome queued, so the bridge sees it on this connection.
+  server.welcome = { name: "brisk-amber-kite", port: PORT, version: "9.9.9" };
+  const connected = server.nextConnection();
+  await page.reload();
+  await connected;
+  await server.waitFor(m => m.type === "hello");
+
+  // The agent compares this with connection_status's own name; a mismatch means
+  // the tab is paired with another session's bridge.
+  const info = await server.poll<PageInfo>("get_page_info", {}, v => v.server !== null);
+  expect(info.server).toEqual({ name: "brisk-amber-kite", port: PORT, version: "9.9.9" });
+
+  // The page also exposes it for a human looking at devtools.
+  const fromWindow = await page.evaluate(
+    () => (window as unknown as { __feedthrough: { server: unknown } }).__feedthrough.server,
+  );
+  expect(fromWindow).toEqual({ name: "brisk-amber-kite", port: PORT, version: "9.9.9" });
+});
+
+test("the connection line is logged natively, not captured as console noise", async ({ page }) => {
+  server.welcome = { name: "quiet-olive-heron", port: PORT, version: "9.9.9" };
+  const connected = server.nextConnection();
+  await page.reload();
+  await connected;
+  await server.waitFor(m => m.type === "hello");
+  await server.poll<PageInfo>("get_page_info", {}, v => v.server !== null);
+
+  // Logged through a console reference captured before the interceptor installs,
+  // so it reaches the browser console without landing in get_console_logs.
+  const logs = await server.command<ConsoleEntry[]>("get_console_logs", {});
+  expect(
+    logs.filter(l => l.args.some(a => typeof a === "string" && a.includes("connected to"))),
+  ).toHaveLength(0);
 });

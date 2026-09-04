@@ -5,7 +5,12 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2020"],
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    // Relative imports carry the real .ts extension so `node --test` resolves
+    // them straight out of src/ (CI runs the unit tests before the build). tsc
+    // rewrites them to .js on emit, so dist/ is plain runnable ESM.
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true
   },
   "include": ["src"]
 }
