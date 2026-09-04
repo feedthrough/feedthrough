@@ -92,7 +92,9 @@ npx @feedthrough/mcp
 ```
 
 The server listens for browser connections on `ws://127.0.0.1:8765` and exposes MCP tools on
-stdio. Override the port with `FEEDTHROUGH_PORT=9000`.
+stdio. Override the port with `FEEDTHROUGH_PORT=9000`. If the port is already taken, the server
+steps up to the next free one rather than refusing to start — see
+[Running several sessions at once](#running-several-sessions-at-once).
 
 ### 2. Add it to your MCP client config
 
@@ -207,8 +209,8 @@ Then ask your AI agent:
 | `get_html(selector)` | Raw outerHTML of a region (capped at 50 KB) |
 | `get_console_logs(limit?, levels?, match?, since?)` | Console output (all methods) plus uncaught errors & promise rejections; filter by `levels`, `match`, or `since` timestamp |
 | `get_network_requests(filter?, since?)` | Captured fetch + XHR — URL, method, status, duration, headers, request/response bodies (10 KB cap); narrow by `filter` or `since` |
-| `get_page_info()` | URL, title, readyState, viewport size, scroll position, user agent |
-| `connection_status()` | List connected tabs and which one is currently active |
+| `get_page_info()` | URL, title, readyState, viewport size, scroll position, user agent, and which bridge this page is connected to |
+| `connection_status()` | Connected tabs and which one is active, plus this server's name, version, and bound port |
 | `click(selector)` | Click an element via native `click()` (fires click + default activation, not the pointer sequence) |
 | `fill(selector, value)` | Set an input/textarea/select value (fires input + change, not keystrokes) |
 | `hover(selector)` | Fire mouseover/mouseenter to mount hover UI (JS handlers, not CSS `:hover`) |
@@ -241,6 +243,54 @@ cd packages/mcp && node dist/index.js
 
 Connect an AI agent and ask it to find what's wrong. The three bugs are all invisible from the
 UI but findable in under a minute via `get_console_logs`, `get_network_requests`, and `query_dom`.
+
+---
+
+## Running several sessions at once
+
+Two AI agent sessions on one machine each start their own Feedthrough MCP server, and only one
+of them can have port 8765. That is handled, but it is worth knowing how.
+
+**The server moves, and tells you where it went.** On a busy port it steps up (8766, 8767, …)
+instead of failing. `connection_status()` reports the port it actually bound, and the agent
+passes that to the dev server it starts:
+
+```bash
+FEEDTHROUGH_PORT=8766 npm run dev
+```
+
+Every build-tool adapter — vite, webpack, nextjs, nuxt, sveltekit, remix — reads `FEEDTHROUGH_PORT`
+(or `FEEDTHROUGH_URL` for a full `ws://` URL) in Node at config-load time and bakes the result into
+the injected bridge. So a committed, argument-free `feedthrough()` pairs correctly in any session,
+with no file edits. An explicit `serverUrl` option always wins over the environment.
+
+**If you start the dev server yourself**, the environment is unset and the page falls back to
+8765, which may be another session's server. Either export the port before starting it, or pin
+one per project (below).
+
+**Pinning a port per project.** For a project you always work on in its own session, pin the port
+on both ends and neither has to think about it. In `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "feedthrough": {
+      "command": "npx",
+      "args": ["@feedthrough/mcp"],
+      "env": { "FEEDTHROUGH_PORT": "8770" }
+    }
+  }
+}
+```
+
+and in the app's config, `feedthrough({ serverUrl: "ws://localhost:8770" })`.
+
+**Telling bridges apart.** Each server picks a readable name at startup (`quiet-olive-heron`) and
+sends it to every page that connects. The page logs one line to the browser console, stores it on
+`window.__feedthrough.server`, and returns it from `get_page_info()`. The agent's own name comes
+from `connection_status()`. Two different names mean the tab is paired with another session's
+server — so "am I driving the right app?" is one call, not something you notice by watching the
+wrong window change.
 
 ---
 

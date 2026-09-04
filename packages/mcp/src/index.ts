@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { startServer } from "./server.js";
+import { startServer } from "./server.ts";
 
 const port = parseInt(process.env.FEEDTHROUGH_PORT ?? "8765", 10);
 

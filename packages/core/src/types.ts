@@ -48,6 +48,22 @@ export type BrowserMessage = ConsoleMessage | NetworkMessage | ResultMessage | H
 
 // ── Server → browser ──────────────────────────────────────────────────────────
 
+// Identity of the MCP server this page is talking to. The server picks a
+// readable name at startup and may bind a port other than the default (another
+// agent session's server can already hold it), so both ends need a way to say
+// which bridge they are on when a page and a session end up mispaired.
+export interface ServerInfo {
+  name: string;
+  port: number;
+  version: string;
+}
+
+// Sent by the server on every connection, in reply to our `hello`. Older
+// bridges ignore it: handle() drops anything that is not a command.
+export interface WelcomeMessage extends ServerInfo {
+  type: "welcome";
+}
+
 export interface ClickCommand {
   type: "command";
   id: string;

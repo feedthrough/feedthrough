@@ -47,6 +47,19 @@ new FeedthroughPlugin({
 })
 ```
 
+### Choosing the port
+
+`serverUrl` defaults to `ws://localhost:8765`, but the plugin resolves it in Node when you
+don't pass one, so the environment can override it:
+
+```bash
+FEEDTHROUGH_PORT=8766 npm run dev     # or FEEDTHROUGH_URL=ws://localhost:8766
+```
+
+That matters when several AI agent sessions run on one machine: only one MCP server gets 8765
+and the rest step up, so each session starts its dev server with the port `connection_status()`
+reported. An explicit `serverUrl` always wins over the environment.
+
 ## ESM resolution note
 
 `@feedthrough/core` is compiled with `moduleResolution: Bundler`, which produces

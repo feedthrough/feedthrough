@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { BridgeClient } from "./bridge-client.js";
+import { BridgeClient } from "./bridge-client.ts";
 
 // Single source of truth for the advertised version: read it from the package's
 // own package.json at runtime (resolves to the package root in dev and when
@@ -51,6 +51,18 @@ The bridge is injected into the page, so you see framework state, not just the r
 1. Call \`connection_status()\` first. If not connected, ask the user to open their app and
    check that the bridge is injected (Vite plugin, Cypress adapter, or manual init).
 
+   Note the \`server.port\` it reports. If it is not 8765, another agent session's bridge already
+   held the default, and this one moved up. The injected bridge still defaults to 8765, so start
+   the app's dev server with that port in the environment:
+
+   \`\`\`
+   FEEDTHROUGH_PORT=<server.port> npm run dev
+   \`\`\`
+
+   The build-tool adapters (vite, webpack, nextjs, nuxt, sveltekit, remix) read it at config-load
+   time, so no file edits are needed. If the user starts the dev server themselves, ask them to
+   set it, or to pin \`serverUrl\` in their config.
+
 2. Start with observation before action:
    - \`get_console_logs()\` — errors and app-level logging often pinpoint the problem immediately
    - \`get_network_requests()\` — look for failed fetches (4xx/5xx), wrong URLs, missing calls
@@ -95,10 +107,13 @@ not the only way, so improvise: any observe -> interact -> re-observe loop is fa
   traps, Escape to close modals, Enter to submit
 - \`fill\` dispatches real input events from inside the page, so React/Vue controlled inputs and
   their validation actually react (setting \`.value\` from devtools wouldn't trigger that)
+- If the page reacts in ways your commands don't explain, or a click seems to land somewhere else,
+  compare \`get_page_info().server.name\` with \`connection_status().server.name\`. Different names
+  mean this tab is paired with a different session's bridge, and you are driving someone else's app
 `;
 
 export async function startServer(port = 8765): Promise<void> {
-  const bridge = new BridgeClient(port);
+  const bridge = new BridgeClient(port, VERSION);
   const server = new McpServer({ name: "feedthrough", version: VERSION });
 
   server.registerTool(
@@ -118,14 +133,21 @@ export async function startServer(port = 8765): Promise<void> {
     {
       description:
         "Check whether a browser with the Feedthrough bridge is currently connected. " +
-        "Returns connected flag and a list of open tabs (id, url, which is active). " +
-        "Call this first — every tool except get_instructions requires a connected browser.",
+        "Returns a connected flag, a list of open tabs (id, url, which is active), and a " +
+        "'server' block identifying this bridge: its name, version, and the port it actually " +
+        "bound. That port matters — if another agent session's server already held the default " +
+        "8765, this one moved up, and the page will not find it until the app's dev server is " +
+        "started with FEEDTHROUGH_PORT set to the reported port. When a page is connected but " +
+        "behaving as though someone else is driving it, compare this name with the 'server' " +
+        "field from get_page_info: different names mean the tab is paired with another " +
+        "session's bridge. Call this first — every tool except get_instructions requires a " +
+        "connected browser.",
     },
     () =>
       Promise.resolve(
         bridge.startupError
           ? err(bridge.startupError)
-          : ok({ connected: bridge.connected, tabs: bridge.tabs }),
+          : ok({ connected: bridge.connected, server: bridge.info, tabs: bridge.tabs }),
       ),
   );
 
@@ -422,8 +444,12 @@ export async function startServer(port = 8765): Promise<void> {
     {
       description:
         "Return basic page context: current URL, document title, readyState, viewport size, scroll " +
-        "position, and user agent. Read-only and non-destructive: it only reads page state and makes " +
-        "no changes. Useful to orient at the start of a session or confirm a navigation happened.",
+        "position, user agent, and a 'server' block naming which Feedthrough bridge this page is " +
+        "connected to (name, port, version — null against a pre-0.4 bridge). Read-only and " +
+        "non-destructive: it only reads page state and makes no changes. Useful to orient at the " +
+        "start of a session or confirm a navigation happened. If several agent sessions are running " +
+        "on this machine, check 'server.name' against connection_status: a mismatch means this tab " +
+        "is talking to another session's server, so you are driving the wrong app.",
     },
     () => run(bridge, "get_page_info"),
   );
@@ -529,8 +555,8 @@ export async function startServer(port = 8765): Promise<void> {
     () => run(bridge, "reset_overrides"),
   );
 
-  process.stderr.write(
-    `[feedthrough] MCP server starting, bridge WebSocket on ws://127.0.0.1:${port}\n`,
-  );
+  // The bridge logs its own "listening on ws://…" line once it knows which port
+  // it actually got, which is not necessarily `port`.
+  process.stderr.write(`[feedthrough] MCP server "${bridge.name}" starting (v${VERSION})\n`);
   await server.connect(new StdioServerTransport());
 }
